@@ -1,17 +1,21 @@
-# # Dark Mode Chat Room
+# Dark Mode Chat Room
 
 A real-time chat application with dark mode support built using WebSocket, HTML, CSS, and JavaScript.
 
 ## Features
 
 - 🌓 Dark/Light theme toggle with persistence
-- 💬 Real-time messaging
+- 💬 Real-time messaging with encryption
 - 🔐 Secure WebSocket connection
 - 👥 User presence indicators
-- 🏠 Multiple chat rooms
-- 📱 Responsive design
-- 🔄 Automatic reconnection
+- 🏠 Multiple chat rooms with dynamic creation
+- 📱 Responsive design for mobile devices
+- 🔄 Automatic reconnection with retry limits
+- 🔒 Message encryption using Caesar cipher
+- 💾 Message persistence using Supabase
 - ⚡ Zero dependencies (client-side)
+- 🎨 Modern UI with CSS variables
+- 🔔 Connection status notifications
 
 ## Getting Started
 
@@ -63,22 +67,51 @@ dark-mode-chat-room/
 
 ## Features in Detail
 
-### Chat Rooms
-- Create custom rooms
-- Join existing rooms
-- See active users in each room
-- Real-time updates when users join/leave
-
-### Theme Toggle
-- Dark/Light mode support
-- Theme persistence across sessions
-- Automatic system theme detection
+### Chat Security
+- Message encryption using Caesar cipher algorithm
+- Input sanitization for XSS prevention
+- Rate limiting and message length restrictions
+- Secure WebSocket connection with auto-reconnect
+- Message validation and sanitization
 
 ### Real-time Features
-- Instant messaging
+- Instant messaging with WebSocket
 - User presence indicators
 - Connection status updates
-- Automatic reconnection
+- Automatic reconnection with configurable retries
+- Real-time room updates
+- Message persistence across sessions
+
+### Chat Rooms
+- Create custom rooms dynamically
+- Join existing rooms in real-time
+- See active users in each room
+- Real-time updates when users join/leave
+- Default rooms: general, random, support
+- Room-specific message history
+
+### Data Persistence
+- Messages stored in Supabase database
+- Room persistence across sessions
+- Theme preference storage
+- Message history retrieval
+- Real-time database synchronization
+
+### Theme System
+- Dark/Light mode support
+- Theme persistence across sessions
+- CSS variable-based theming
+- Smooth theme transitions
+- System theme detection
+- Custom color schemes
+
+### UI Features
+- Responsive mobile-first design
+- Modern messaging interface
+- User avatars and status indicators
+- Message timestamps
+- Typing indicators
+- Scroll-to-bottom on new messages
 
 ## Browser Support
 
@@ -134,3 +167,28 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 For support, please open an issue in the GitHub repository or contact the maintainers.
+
+## Technical Details
+
+### Configuration
+- Maximum message length: 1000 characters
+- Maximum reconnection attempts: 3
+- Reconnection delay: 2000ms
+- Connection timeout: 5000ms
+- Username requirements: 3-20 alphanumeric characters
+- Room name requirements: 3-30 alphanumeric characters
+
+### WebSocket Events
+- message: Handle incoming chat messages
+- user_list: Update online users
+- room_list: Update available rooms
+- join_room: Handle room transitions
+- create_room: Handle new room creation
+
+### Error Handling
+- Connection failure recovery
+- Message validation
+- Input sanitization
+- Encrypted message handling
+- Database error handling
+- WebSocket error recovery
