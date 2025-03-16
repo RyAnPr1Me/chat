@@ -17,16 +17,16 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-// WebSocket connection handling
+// Simplified WebSocket connection handling
 wss.on('connection', async (ws, req) => {
-    const token = new URL(req.url, 'http://localhost').searchParams.get('token');
-    try {
-        const user = jwt.verify(token, process.env.JWT_SECRET);
-        ws.userId = user.id;
-    } catch (error) {
-        console.error('WebSocket connection error:', error);
-        ws.close();
-    }
+  const token = new URL(req.url, 'http://localhost').searchParams.get('token');
+  try {
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+    ws.userId = user.id;
+  } catch (error) {
+    console.error('Netlify function WebSocket error:', error);
+    ws.close();
+  }
 });
 
 function broadcastToRoom(room, message) {
@@ -35,10 +35,9 @@ function broadcastToRoom(room, message) {
 function broadcastUserList() {
 }
 
-// If run locally, start the server; otherwise export the Netlify handler.
 if (require.main === module) {
-    const PORT = process.env.PORT || 3000;
-    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => console.log(`Server (Netlify function) running locally on port ${PORT}`));
 } else {
-    module.exports.handler = serverless(app);
+  module.exports.handler = serverless(app);
 }
