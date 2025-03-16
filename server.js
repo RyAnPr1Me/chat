@@ -131,20 +131,11 @@ function broadcastUserList() {
     }
 }
 
-// Remove or comment out the existing server.listen(...) call
-// const PORT = process.env.PORT || 3000;
-// server.listen(PORT, () => {
-//     console.log(`Server running on port ${PORT}`);
-// });
-
-// For Netlify functions, export the handler; use local server otherwise.
-if (process.env.NETLIFY) {
-    module.exports.handler = serverless(app);
-} else {
+if (!process.env.NETLIFY) {
     const PORT = process.env.PORT || 3000;
-    const http = require('http');
-    const server = http.createServer(app);
-    server.listen(PORT, () => {
+    require('http').createServer(app).listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
     });
+} else {
+    module.exports.handler = require('serverless-http')(app);
 }
