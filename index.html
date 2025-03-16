@@ -433,6 +433,9 @@
             THEME_STORAGE_KEY: 'darkMode'
         };
 
+        // Define SERVER_PORT for websocket connection (use current port or default)
+        const SERVER_PORT = window.location.port || (window.location.protocol === 'https:' ? "443" : "80");
+
         // Supabase configuration
         const SUPABASE_URL = 'https://ezuyuhakarqlbxszaluq.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6dXl1aGFrYXJxbGJ4c3phbHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNDc0NDcsImV4cCI6MjA1NzcyMzQ0N30.j0mwiHHyBDs9LcUe6S1IxMsNujAo3yzrmt7AZpH5_d0';
