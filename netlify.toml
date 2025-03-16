@@ -1,0 +1,10 @@
+[build]
+  # For a simple static site, no build is needed.
+  command = "echo 'No build required'"
+  publish = "."
+
+[build.environment]
+  # IMPORTANT:
+  # The error with cchardet indicates that the Python development package (python3-dev)
+  # is missing. Make sure your build environment installs it.
+  # For example, on Ubuntu: sudo apt install python3-dev

@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "test": "jest",
     "build": "node build.js",
-    "deploy": "vercel deploy"
+    "deploy": "vercel deploy",
+    "netlify:deploy": "netlify deploy --prod"
   },
   "repository": {
     "type": "git",
