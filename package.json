@@ -26,8 +26,8 @@
   "author": "Ryan Manzo",
   "license": "MIT",
   "engines": {
-    "node": ">=14.0.0",
-    "npm": ">=6.0.0"
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
   },
   "browserslist": [
     ">0.2%",
