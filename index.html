@@ -400,6 +400,13 @@
             THEME_STORAGE_KEY: 'darkMode'
         };
 
+        // Supabase configuration
+        const SUPABASE_URL = 'https://ezuyuhakarqlbxszaluq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6dXl1aGFrYXJxbGJ4c3phbHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNDc0NDcsImV4cCI6MjA1NzcyMzQ0N30.j0mwiHHyBDs9LcUe6S1IxMsNujAo3yzrmt7AZpH5_d0';
+        const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6dXl1aGFrYXJxbGJ4c3phbHVxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MjE0NzQ0NywiZXhwIjoyMDU3NzIzNDQ3fQ.GMadjjK-W6BGuEQnWkRK4MyVUnFB7utBHmrM1yH5ns8';
+
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         // DOM Elements
         const messagesContainer = document.getElementById('messagesContainer');
         const messageInput = document.getElementById('messageInput');
@@ -583,7 +590,7 @@
             return encryptMessage(message, 26 - shift);
         }
 
-        function sendMessage() {
+        async function sendMessage() {
             try {
                 const message = messageInput.value.trim();
                 validateMessage(message);
@@ -600,6 +607,15 @@
                     user: currentUser?.username,
                     timestamp: Date.now()
                 };
+
+                // Save message to Supabase
+                const { error } = await supabase
+                    .from('messages')
+                    .insert([messageData]);
+
+                if (error) {
+                    throw new Error('Failed to save message');
+                }
 
                 socket.send(JSON.stringify(messageData));
                 console.log('Message sent:', messageData);
@@ -628,27 +644,46 @@
         
         // Render messages in the chat
         function renderMessage(data) {
-            const decryptedMessage = decryptMessage(data.content);
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message', data.user === currentUser.username ? 'message-outgoing' : 'message-incoming');
-            messageElement.innerHTML = `
-                <div>${decryptedMessage}</div>
-                <div class="message-meta">
-                    <span>${data.user}</span>
-                    <span>${new Date(data.timestamp).toLocaleTimeString()}</span>
-                </div>
-            `;
-            messagesContainer.appendChild(messageElement);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            console.log('Message rendered:', data);
+            try {
+                const decryptedMessage = decryptMessage(data.content);
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', data.user === currentUser.username ? 'message-outgoing' : 'message-incoming');
+                messageElement.innerHTML = `
+                    <div>${decryptedMessage}</div>
+                    <div class="message-meta">
+                        <span>${data.user}</span>
+                        <span>${new Date(data.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                `;
+                messagesContainer.appendChild(messageElement);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                console.log('Message rendered:', data);
+            } catch (error) {
+                console.error('Error rendering message:', error);
+                showError('Failed to render message');
+            }
         }
 
-        function renderMessages() {
+        async function renderMessages() {
             messagesContainer.innerHTML = '';
-            // Fetch messages for the current room from the server or local storage
-            // For demonstration, we'll use a mock function to get messages
-            const messages = getMessagesForRoom(currentRoom);
-            messages.forEach(renderMessage);
+
+            try {
+                // Fetch messages for the current room from Supabase
+                const { data: messages, error } = await supabase
+                    .from('messages')
+                    .select('*')
+                    .eq('room', currentRoom)
+                    .order('timestamp', { ascending: true });
+
+                if (error) {
+                    throw new Error('Failed to fetch messages');
+                }
+
+                messages.forEach(renderMessage);
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+                showError('Failed to load messages');
+            }
         }
 
         function getMessagesForRoom(room) {
