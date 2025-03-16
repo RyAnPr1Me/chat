@@ -433,7 +433,7 @@
             THEME_STORAGE_KEY: 'darkMode'
         };
 
-        // Define SERVER_PORT for websocket connection (use current port or default)
+        // Define SERVER_PORT for WebSocket connection (fallback to default ports)
         const SERVER_PORT = window.location.port || (window.location.protocol === 'https:' ? "443" : "80");
 
         // Supabase configuration

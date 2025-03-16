@@ -12,7 +12,6 @@ const app = express();
 app.use(express.static(path.join(process.cwd(), 'public')));
 app.use(cors());
 app.use(express.json());
-// ...existing middleware and route handlers...
 
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
@@ -24,7 +23,6 @@ wss.on('connection', async (ws, req) => {
     try {
         const user = jwt.verify(token, process.env.JWT_SECRET);
         ws.userId = user.id;
-        // ...existing logic to send initial data and handle messages...
     } catch (error) {
         console.error('WebSocket connection error:', error);
         ws.close();
@@ -32,14 +30,12 @@ wss.on('connection', async (ws, req) => {
 });
 
 function broadcastToRoom(room, message) {
-    // ...existing code...
 }
 
 function broadcastUserList() {
-    // ...existing code...
 }
 
-// Local debugging startup; exported handler for Netlify
+// If run locally, start the server; otherwise export the Netlify handler.
 if (require.main === module) {
     const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
