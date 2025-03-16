@@ -401,6 +401,10 @@
             WS_RETRY_INTERVAL: 1000,
             WS_MAX_RETRIES: 5,
             WS_HEARTBEAT_INTERVAL: 30000,
+            INACTIVE_TIMEOUT: 300000, // 5 minutes
+            TYPING_TIMEOUT: 1000,
+            MESSAGE_BATCH_SIZE: 50,
+            LOAD_MORE_THRESHOLD: 100
         };
 
         // Supabase configuration
@@ -431,6 +435,9 @@
         let isConnected = false;
         let reconnectAttempts = 0;
         let reconnectInterval;
+        let typingTimeout;
+        let lastActivity = Date.now();
+        let messageCache = new Map();
         
         // Initialize chat
         function initChat() {
@@ -475,6 +482,8 @@
                     socket = new WebSocket(wsUrl);
                     setupSocketEvents(resolve, reject);
                     setupHeartbeat();
+                    setupActivityMonitoring();
+                    setupScrollHandler();
                 } catch (error) {
                     handleConnectionError(error);
                     reject(error);
@@ -649,6 +658,9 @@
         // Render messages in the chat
         function renderMessage(data) {
             try {
+                if (messageCache.has(data.id)) return;
+                messageCache.set(data.id, data);
+                
                 const decryptedMessage = decryptMessage(data.content);
                 const messageElement = document.createElement('div');
                 messageElement.classList.add('message', data.user === currentUser.username ? 'message-outgoing' : 'message-incoming');
@@ -818,6 +830,56 @@
                 throw new Error(`Message too long (max ${CONFIG.MAX_MESSAGE_LENGTH} characters)`);
             }
             return true;
+        }
+
+        function setupActivityMonitoring() {
+            document.addEventListener('mousemove', updateActivity);
+            document.addEventListener('keypress', updateActivity);
+            messageInput.addEventListener('input', handleTyping);
+            
+            setInterval(() => {
+                if (Date.now() - lastActivity > CONFIG.INACTIVE_TIMEOUT) {
+                    updateConnectionStatus('idle', 'You are currently inactive');
+                }
+            }, CONFIG.INACTIVE_TIMEOUT / 2);
+        }
+
+        function updateActivity() {
+            lastActivity = Date.now();
+            if (!isConnected) return;
+            updateConnectionStatus('connected', 'Connected to server');
+        }
+
+        function handleTyping() {
+            if (!isConnected) return;
+            
+            socket.send(JSON.stringify({
+                type: 'typing',
+                room: currentRoom,
+                user: currentUser.username
+            }));
+
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                socket.send(JSON.stringify({
+                    type: 'stop_typing',
+                    room: currentRoom,
+                    user: currentUser.username
+                }));
+            }, CONFIG.TYPING_TIMEOUT);
+        }
+
+        function setupScrollHandler() {
+            messagesContainer.addEventListener('scroll', () => {
+                if (messagesContainer.scrollTop < CONFIG.LOAD_MORE_THRESHOLD) {
+                    loadMoreMessages();
+                }
+            });
+        }
+
+        async function loadMoreMessages() {
+            // Implementation for loading older messages
+            // ...
         }
         
         // Initialize the chat application on page load
