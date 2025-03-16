@@ -1,13 +1,13 @@
 {
-  "name": "dark-mode-chat-room",
+  "name": "dark-mode-chat",
   "version": "1.0.0",
-  "description": "A dark mode chat room application built with HTML, CSS, and JavaScript",
+  "description": "Real-time chat application with dark mode",
   "private": true,
-  "main": "index.html",
+  "main": "server.js",
   "scripts": {
-    "start": "live-server",
+    "start": "node server.js",
     "test": "echo \"No tests specified\" && exit 0",
-    "dev": "live-server --port=3000 --host=localhost"
+    "dev": "nodemon server.js"
   },
   "repository": {
     "type": "git",
@@ -31,8 +31,10 @@
     "not ie <= 11",
     "not op_mini all"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "ws": "^8.5.0"
+  },
   "devDependencies": {
-    "live-server": "^1.2.1"
+    "nodemon": "^2.0.15"
   }
 }

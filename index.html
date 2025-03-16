@@ -397,14 +397,14 @@
             CONNECTION_TIMEOUT: 5000,
             VALID_USERNAME_REGEX: /^[a-zA-Z0-9_-]{3,20}$/,
             VALID_ROOM_NAME_REGEX: /^[a-zA-Z0-9_-]{3,30}$/,
-            THEME_STORAGE_KEY: 'darkMode'
+            THEME_STORAGE_KEY: 'darkMode',
+            WS_RETRY_INTERVAL: 1000,
+            WS_MAX_RETRIES: 5,
+            WS_HEARTBEAT_INTERVAL: 30000,
         };
 
         // Supabase configuration
         const SUPABASE_URL = 'https://ezuyuhakarqlbxszaluq.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6dXl1aGFrYXJxbGJ4c3phbHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNDc0NDcsImV4cCI6MjA1NzcyMzQ0N30.j0mwiHHyBDs9LcUe6S1IxMsNujAo3yzrmt7AZpH5_d0';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
         // DOM Elements
         const messagesContainer = document.getElementById('messagesContainer');
         const messageInput = document.getElementById('messageInput');
