@@ -1,8 +1,24 @@
 const WebSocket = require('ws');
 const http = require('http');
+const express = require('express');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 
-const server = http.createServer();
+const app = express();
+const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
+
+// Add security headers
+app.use(helmet());
+app.use(compression());
+
+// Rate limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100
+});
+app.use(limiter);
 
 const PORT = process.env.PORT || 3000;
 const clients = new Map();
@@ -12,8 +28,13 @@ const CONFIG = {
     MAX_ROOMS: 50,
     MAX_USERS_PER_ROOM: 100,
     PING_INTERVAL: 30000,
-    PING_TIMEOUT: 5000
+    PING_TIMEOUT: 5000,
+    MAX_MESSAGE_SIZE: 1024 * 16, // 16KB
+    CLEANUP_INTERVAL: 60000 // 1 minute
 };
+
+// Improved client tracking with Map
+const clientsMap = new Map();
 
 wss.on('connection', (ws) => {
     const clientId = Date.now();
@@ -60,6 +81,9 @@ function handleMessage(ws, data) {
     if (!client) return;
     
     try {
+        if (Buffer.from(JSON.stringify(data)).length > CONFIG.MAX_MESSAGE_SIZE) {
+            throw new Error('Message too large');
+        }
         switch(data.type) {
             case 'ping':
                 ws.send(JSON.stringify({ type: 'pong' }));
@@ -97,7 +121,10 @@ function handleMessage(ws, data) {
                 break;
         }
     } catch (error) {
-        console.error('Message handling error:', error);
+        ws.send(JSON.stringify({
+            type: 'error',
+            message: error.message
+        }));
     }
 }
 
@@ -166,6 +193,21 @@ function broadcastRoomList() {
         }));
     });
 }
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
+});
+
+// Add clean disconnect handling
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received. Closing WebSocket server...');
+    wss.close(() => {
+        console.log('WebSocket server closed');
+        process.exit(0);
+    });
+});
 
 server.listen(PORT, () => {
     console.log(`WebSocket server running on port ${PORT}`);
