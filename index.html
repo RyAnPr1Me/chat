@@ -375,7 +375,7 @@
                 
                 <div class="chat-input">
                     <input type="text" class="message-input" id="messageInput" placeholder="Type a message...">
-                    <button class="send-button" id="sendButton" disabled>
+                    <button class="send-button" id="sendButton">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -563,10 +563,8 @@
                 sendButton.disabled = messageInput.value.trim() === '';
             });
             
-            // Handle room creation
+            // Handle room creation and theme toggle
             createRoomButton.addEventListener('click', createRoom);
-            
-            // Handle theme toggle
             themeToggle.addEventListener('click', toggleTheme);
         }
         
@@ -616,7 +614,6 @@
                 }
 
                 socket.send(JSON.stringify(messageData));
-                console.log('Message sent:', messageData);
                 messageInput.value = '';
                 sendButton.disabled = true;
 
