@@ -426,6 +426,7 @@
         
         // Initialize chat
         function initChat() {
+            console.log('Initializing chat...');
             setupEventListeners();
             initializeSocket().then(setupUser);
             setupThemeToggle();
@@ -452,6 +453,7 @@
             // Update user avatar and username
             userAvatar.textContent = username[0].toUpperCase();
             usernameElement.textContent = username;
+            console.log('User setup complete:', currentUser);
         }
         
         // Initialize WebSocket connection
@@ -467,6 +469,7 @@
                     }
 
                     socket = new WebSocket(`${protocol}//${host}:${port}/ws`);
+                    console.log('WebSocket created:', socket);
                     setupSocketEvents(resolve, reject);
                     updateConnectionStatus('connecting', 'Connecting to server...');
                 } catch (error) {
@@ -496,6 +499,7 @@
                 }
                 updateConnectionStatus('connected', 'Connected to server');
                 reconnectAttempts = 0;
+                console.log('WebSocket connection opened');
                 resolve();
             });
         
@@ -505,6 +509,7 @@
                     if (!data.type) {
                         throw new Error('Invalid message format');
                     }
+                    console.log('WebSocket message received:', data);
                     onSocketMessage(event);
                 } catch (error) {
                     console.error('Message handling error:', error);
@@ -519,6 +524,7 @@
                     : 'Connection failed. Please refresh the page.';
                     
                 updateConnectionStatus('disconnected', message);
+                console.log('WebSocket connection closed');
         
                 if (reconnectAttempts < CONFIG.MAX_RECONNECT_ATTEMPTS) {
                     reconnectAttempts++;
@@ -578,6 +584,7 @@
                 };
         
                 socket.send(JSON.stringify(messageData));
+                console.log('Message sent:', messageData);
                 messageInput.value = '';
                 sendButton.disabled = true;
             } catch (error) {
@@ -611,6 +618,7 @@
             `;
             messagesContainer.appendChild(messageElement);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            console.log('Message rendered:', data);
         }
         
         // Update user list in the sidebar
@@ -626,6 +634,7 @@
                 `;
                 userList.appendChild(userItem);
             });
+            console.log('User list updated:', users);
         }
         
         // Update room list in the sidebar
@@ -638,6 +647,7 @@
                 roomItem.addEventListener('click', () => joinRoom(room));
                 roomList.appendChild(roomItem);
             });
+            console.log('Room list updated:', rooms);
         }
         
         // Join a room
@@ -646,6 +656,7 @@
                 currentRoom = room;
                 renderMessages();
                 socket.send(JSON.stringify({ type: 'join_room', room: currentRoom, user: currentUser.username }));
+                console.log('Joined room:', room);
             }
         }
         
@@ -668,6 +679,7 @@
                 createRoomInput.value = '';
                 updateRoomList(rooms);
                 socket.send(JSON.stringify({ type: 'create_room', room: newRoomName }));
+                console.log('Room created:', newRoomName);
             }
         }
         
@@ -698,6 +710,7 @@
                 
                 themeToggle.textContent = darkMode ? '☀️' : '🌙';
                 localStorage.setItem(CONFIG.THEME_STORAGE_KEY, darkMode);
+                console.log('Theme toggled:', darkMode ? 'dark' : 'light');
             } catch (error) {
                 console.error('Theme toggle error:', error);
                 showError('Failed to toggle theme');
@@ -709,6 +722,7 @@
             connectionStatus.textContent = message;
             connectionStatus.classList.remove('status-connected', 'status-disconnected', 'status-connecting');
             connectionStatus.classList.add(`status-${status}`);
+            console.log('Connection status updated:', status, message);
         }
 
         function showError(message, duration = 3000) {
