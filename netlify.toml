@@ -1,5 +1,5 @@
 [build]
-  command = "npm ci && echo 'Build complete'"  // ensure package-lock.json is committed for consistent installs
+  command = "npm ci && echo 'Build complete'"
   publish = "."
 
 [build.environment]
@@ -7,3 +7,11 @@
   # The error with cchardet indicates that the Python development package (python3-dev)
   # is missing. Make sure your build environment installs it.
   # For example, on Ubuntu: sudo apt install python3-dev
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/server"
+  status = 200
+
+[functions]
+  directory = "netlify/functions"

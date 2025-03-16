@@ -44,7 +44,8 @@
     "@supabase/supabase-js": "^2.39.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "serverless-http": "^2.7.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.3",

@@ -6,6 +6,7 @@ const { createClient } = require('@supabase/supabase-js');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
+const serverless = require('serverless-http'); // added
 
 const app = express();
 const server = http.createServer(app);
@@ -130,7 +131,20 @@ function broadcastUserList() {
     }
 }
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// Remove or comment out the existing server.listen(...) call
+// const PORT = process.env.PORT || 3000;
+// server.listen(PORT, () => {
+//     console.log(`Server running on port ${PORT}`);
+// });
+
+// For Netlify functions, export the handler; use local server otherwise.
+if (process.env.NETLIFY) {
+    module.exports.handler = serverless(app);
+} else {
+    const PORT = process.env.PORT || 3000;
+    const http = require('http');
+    const server = http.createServer(app);
+    server.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
