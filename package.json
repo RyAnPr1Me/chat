@@ -1,0 +1,38 @@
+{
+  "name": "dark-mode-chat-room",
+  "version": "1.0.0",
+  "description": "A dark mode chat room application built with HTML, CSS, and JavaScript",
+  "private": true,
+  "main": "index.html",
+  "scripts": {
+    "start": "live-server",
+    "test": "echo \"No tests specified\" && exit 0",
+    "dev": "live-server --port=3000 --host=localhost"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/username/dark-mode-chat-room.git"
+  },
+  "keywords": [
+    "chat",
+    "dark-mode",
+    "websocket",
+    "real-time"
+  ],
+  "author": "Ryan Manzo",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "live-server": "^1.2.1"
+  }
+}
