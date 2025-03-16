@@ -405,6 +405,9 @@
 
         // Supabase configuration
         const SUPABASE_URL = 'https://ezuyuhakarqlbxszaluq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6dXl1aGFrYXJxbGJ4c3phbHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNDc0NDcsImV4cCI6MjA1NzcyMzQ0N30.j0mwiHHyBDs9LcUe6S1IxMsNujAo3yzrmt7AZpH5_d0';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         // DOM Elements
         const messagesContainer = document.getElementById('messagesContainer');
         const messageInput = document.getElementById('messageInput');
@@ -463,26 +466,46 @@
         
         // Initialize WebSocket connection
         async function initializeSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const host = window.location.hostname;
-            const port = window.location.port || (protocol === 'wss:' ? '443' : '80');
-            
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsPort = process.env.PORT || 3000;
+            const wsUrl = `${wsProtocol}//${window.location.hostname}:${wsPort}`;
+
             return new Promise((resolve, reject) => {
                 try {
-                    if (socket && socket.readyState === WebSocket.OPEN) {
-                        socket.close();
-                    }
-
-                    socket = new WebSocket(`${protocol}//${host}:${port}/ws`);
-                    console.log('WebSocket created:', socket);
+                    socket = new WebSocket(wsUrl);
                     setupSocketEvents(resolve, reject);
-                    updateConnectionStatus('connecting', 'Connecting to server...');
+                    setupHeartbeat();
                 } catch (error) {
-                    console.error('WebSocket creation error:', error);
-                    updateConnectionStatus('disconnected', 'Failed to connect to server');
+                    handleConnectionError(error);
                     reject(error);
                 }
             });
+        }
+
+        function setupHeartbeat() {
+            const heartbeat = () => {
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ type: 'ping' }));
+                }
+            };
+            
+            const heartbeatInterval = setInterval(heartbeat, CONFIG.WS_HEARTBEAT_INTERVAL);
+            
+            socket.addEventListener('close', () => {
+                clearInterval(heartbeatInterval);
+            });
+        }
+
+        function handleConnectionError(error) {
+            console.error('WebSocket error:', error);
+            if (reconnectAttempts < CONFIG.WS_MAX_RETRIES) {
+                reconnectAttempts++;
+                setTimeout(() => {
+                    initializeSocket().catch(handleConnectionError);
+                }, CONFIG.WS_RETRY_INTERVAL * reconnectAttempts);
+            } else {
+                updateConnectionStatus('error', 'Connection failed. Please refresh the page.');
+            }
         }
 
         // Setup WebSocket event handlers
@@ -589,39 +612,25 @@
         async function sendMessage() {
             try {
                 const message = messageInput.value.trim();
-                validateMessage(message);
-                
-                if (!isConnected) {
-                    throw new Error('Not connected to server');
-                }
+                if (!message || !validateMessage(message)) return;
 
-                const encryptedMessage = encryptMessage(message);
                 const messageData = {
                     type: 'message',
-                    content: sanitizeInput(encryptedMessage),
+                    content: encryptMessage(sanitizeInput(message)),
                     room: currentRoom,
                     user: currentUser?.username,
                     timestamp: Date.now()
                 };
 
-                // Save message to Supabase using the correct client
-                const { error } = await supabaseClient
-                    .from('messages')
-                    .insert([messageData]);
-                
-                if (error) {
-                    throw new Error('Failed to save message');
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify(messageData));
+                    messageInput.value = '';
+                    renderMessage(messageData);
+                } else {
+                    throw new Error('Connection lost. Trying to reconnect...');
                 }
-
-                socket.send(JSON.stringify(messageData));
-                messageInput.value = '';
-                sendButton.disabled = true;
-
-                // Render the message immediately
-                renderMessage(messageData);
             } catch (error) {
-                console.error('Send message error:', error);
-                showError(error.message);
+                handleConnectionError(error);
             }
         }
 
