@@ -1,6 +1,5 @@
 [build]
-  # For a simple static site, no build is needed.
-  command = "echo 'No build required'"
+  command = "npm install && echo 'Build complete'"
   publish = "."
 
 [build.environment]
