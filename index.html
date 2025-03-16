@@ -403,9 +403,7 @@
         // Supabase configuration
         const SUPABASE_URL = 'https://ezuyuhakarqlbxszaluq.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6dXl1aGFrYXJxbGJ4c3phbHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNDc0NDcsImV4cCI6MjA1NzcyMzQ0N30.j0mwiHHyBDs9LcUe6S1IxMsNujAo3yzrmt7AZpH5_d0';
-        const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6dXl1aGFrYXJxbGJ4c3phbHVxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MjE0NzQ0NywiZXhwIjoyMDU3NzIzNDQ3fQ.GMadjjK-W6BGuEQnWkRK4MyVUnFB7utBHmrM1yH5ns8';
-
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // DOM Elements
         const messagesContainer = document.getElementById('messagesContainer');
@@ -608,11 +606,11 @@
                     timestamp: Date.now()
                 };
 
-                // Save message to Supabase
-                const { error } = await supabase
+                // Save message to Supabase using the correct client
+                const { error } = await supabaseClient
                     .from('messages')
                     .insert([messageData]);
-
+                
                 if (error) {
                     throw new Error('Failed to save message');
                 }
@@ -668,8 +666,8 @@
             messagesContainer.innerHTML = '';
 
             try {
-                // Fetch messages for the current room from Supabase
-                const { data: messages, error } = await supabase
+                // Fetch messages for the current room from Supabase using the correct client
+                const { data: messages, error } = await supabaseClient
                     .from('messages')
                     .select('*')
                     .eq('room', currentRoom)
@@ -684,15 +682,6 @@
                 console.error('Error fetching messages:', error);
                 showError('Failed to load messages');
             }
-        }
-
-        function getMessagesForRoom(room) {
-            // Mock function to return messages for a room
-            // Replace this with actual server call or local storage retrieval
-            return [
-                { user: 'user1', content: encryptMessage('Hello!', 3), timestamp: Date.now() },
-                { user: 'user2', content: encryptMessage('Hi there!', 3), timestamp: Date.now() }
-            ];
         }
         
         // Update user list in the sidebar
