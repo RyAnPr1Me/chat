@@ -507,9 +507,11 @@
             try {
                 const token = await getAuthToken();
                 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const wsUrl = `${wsProtocol}//${window.location.hostname}:${process.env.PORT || 3000}?token=${token}`;
+                const wsUrl = `${wsProtocol}//${window.location.hostname}:${SERVER_PORT}?token=${token}`;
                 socket = new WebSocket(wsUrl);
-                setupSocketEvents();
+                await new Promise((resolve, reject) => {
+                    setupSocketEvents(resolve, reject);
+                });
                 setupHeartbeat();
                 setupActivityMonitoring();
                 setupScrollHandler();
@@ -575,7 +577,7 @@
                 }
                 updateConnectionStatus('connected', 'Connected to server');
                 reconnectAttempts = 0;
-                console.log('WebSocket connection opened');
+                console.debug('WebSocket connection opened');
                 resolve();
             });
         
@@ -585,7 +587,7 @@
                     if (!data.type) {
                         throw new Error('Invalid message format');
                     }
-                    console.log('WebSocket message received:', data);
+                    console.debug('WebSocket message received:', data);
                     onSocketMessage(event);
                 } catch (error) {
                     console.error('Message handling error:', error);
@@ -598,10 +600,8 @@
                 const message = reconnectAttempts < CONFIG.MAX_RECONNECT_ATTEMPTS
                     ? `Disconnected. Reconnecting (${reconnectAttempts + 1}/${CONFIG.MAX_RECONNECT_ATTEMPTS})...`
                     : 'Connection failed. Please refresh the page.';
-                    
                 updateConnectionStatus('disconnected', message);
-                console.log('WebSocket connection closed');
-        
+                console.debug('WebSocket connection closed');
                 if (reconnectAttempts < CONFIG.MAX_RECONNECT_ATTEMPTS) {
                     reconnectAttempts++;
                     reconnectInterval = setTimeout(() => {

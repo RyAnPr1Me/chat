@@ -32,6 +32,7 @@ wss.on('connection', async (ws, req) => {
         const user = jwt.verify(token, process.env.JWT_SECRET);
         ws.userId = user.id;
         clients.set(ws.userId, ws);
+        console.debug(`User ${ws.userId} connected via WebSocket`);
 
         // Send initial data
         const { data: messages } = await supabase
@@ -82,7 +83,6 @@ wss.on('connection', async (ws, req) => {
                             rooms.set(data.room, new Set());
                             rooms.get(data.room).add(ws.userId);
                             console.info(`New room created: ${data.room}`);
-                            // Optionally, broadcast the new room list to all clients
                         } else {
                             console.warn(`Room ${data.room} already exists`);
                         }
@@ -98,9 +98,11 @@ wss.on('connection', async (ws, req) => {
         ws.on('close', () => {
             clients.delete(ws.userId);
             broadcastUserList();
+            console.debug(`User ${ws.userId} disconnected`);
         });
 
     } catch (error) {
+        console.error('JWT verification error:', error);
         ws.close();
     }
 });
