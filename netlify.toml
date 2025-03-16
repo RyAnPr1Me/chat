@@ -1,5 +1,5 @@
 [build]
-  command = "npm install && echo 'Build complete'"
+  command = "npm ci && echo 'Build complete'"  // ensure package-lock.json is committed for consistent installs
   publish = "."
 
 [build.environment]
