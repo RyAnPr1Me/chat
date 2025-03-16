@@ -635,12 +635,29 @@
                 <div>${decryptedMessage}</div>
                 <div class="message-meta">
                     <span>${data.user}</span>
-                    <span>${new Date().toLocaleTimeString()}</span>
+                    <span>${new Date(data.timestamp).toLocaleTimeString()}</span>
                 </div>
             `;
             messagesContainer.appendChild(messageElement);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
             console.log('Message rendered:', data);
+        }
+
+        function renderMessages() {
+            messagesContainer.innerHTML = '';
+            // Fetch messages for the current room from the server or local storage
+            // For demonstration, we'll use a mock function to get messages
+            const messages = getMessagesForRoom(currentRoom);
+            messages.forEach(renderMessage);
+        }
+
+        function getMessagesForRoom(room) {
+            // Mock function to return messages for a room
+            // Replace this with actual server call or local storage retrieval
+            return [
+                { user: 'user1', content: encryptMessage('Hello!', 3), timestamp: Date.now() },
+                { user: 'user2', content: encryptMessage('Hi there!', 3), timestamp: Date.now() }
+            ];
         }
         
         // Update user list in the sidebar
