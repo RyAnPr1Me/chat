@@ -111,9 +111,39 @@
         
         .message {
             max-width: 80%;
-            padding: 0.8rem 1rem;
+            padding: 1rem;
             border-radius: 1rem;
             word-wrap: break-word;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .message-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .encrypted-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.3rem;
+            background-color: var(--secondary-color);
+            color: white;
+            margin-left: auto;
         }
         
         .message-outgoing {
@@ -338,6 +368,7 @@
             }
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 </head>
 <body>
     <div class="chat-container">
@@ -473,22 +504,30 @@
         
         // Initialize WebSocket connection
         async function initializeSocket() {
-            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsPort = process.env.PORT || 3000;
-            const wsUrl = `${wsProtocol}//${window.location.hostname}:${wsPort}`;
+            try {
+                const token = await getAuthToken();
+                const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${wsProtocol}//${window.location.hostname}:${process.env.PORT || 3000}?token=${token}`;
+                socket = new WebSocket(wsUrl);
+                setupSocketEvents();
+                setupHeartbeat();
+                setupActivityMonitoring();
+                setupScrollHandler();
+            } catch (error) {
+                handleConnectionError(error);
+            }
+        }
 
-            return new Promise((resolve, reject) => {
-                try {
-                    socket = new WebSocket(wsUrl);
-                    setupSocketEvents(resolve, reject);
-                    setupHeartbeat();
-                    setupActivityMonitoring();
-                    setupScrollHandler();
-                } catch (error) {
-                    handleConnectionError(error);
-                    reject(error);
-                }
-            });
+        async function getAuthToken() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                const { data: { user: newUser } } = await supabase.auth.signUp({
+                    email: prompt('Enter your email:'),
+                    password: prompt('Create a password:')
+                });
+                return newUser.jwt_token;
+            }
+            return user.jwt_token;
         }
 
         function setupHeartbeat() {
@@ -601,21 +640,67 @@
         }
         
         // Encryption and Decryption functions
-        function encryptMessage(message, shift = 3) {
-            return message.split('').map(char => {
-                const code = char.charCodeAt(0);
-                if (code >= 65 && code <= 90) {
-                    return String.fromCharCode(((code - 65 + shift) % 26) + 65);
-                } else if (code >= 97 && code <= 122) {
-                    return String.fromCharCode(((code - 97 + shift) % 26) + 97);
-                } else {
-                    return char;
-                }
-            }).join('');
+        const ENCRYPTION_KEY = 'EC4F9267-8C6B-4D2F-934B-8C911D1A7D56'; // use the same as in .env
+
+        async function encryptMessage(message) {
+            try {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(message);
+                const key = await crypto.subtle.importKey(
+                    'raw',
+                    encoder.encode(ENCRYPTION_KEY),
+                    { name: 'AES-GCM' },
+                    false,
+                    ['encrypt']
+                );
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                const encrypted = await crypto.subtle.encrypt(
+                    { name: 'AES-GCM', iv },
+                    key,
+                    data
+                );
+                return JSON.stringify({
+                    iv: Array.from(iv),
+                    data: Array.from(new Uint8Array(encrypted))
+                });
+            } catch (error) {
+                console.error('Encryption error:', error);
+                throw new Error('Message encryption failed');
+            }
         }
 
-        function decryptMessage(message, shift = 3) {
-            return encryptMessage(message, 26 - shift);
+        async function decryptMessage(encryptedMessage) {
+            try {
+                const { iv, data } = JSON.parse(encryptedMessage);
+                const decoder = new TextDecoder();
+                const key = await crypto.subtle.importKey(
+                    'raw',
+                    new TextEncoder().encode(ENCRYPTION_KEY),
+                    { name: 'AES-GCM' },
+                    false,
+                    ['decrypt']
+                );
+                const decrypted = await crypto.subtle.decrypt(
+                    { name: 'AES-GCM', iv: new Uint8Array(iv) },
+                    key,
+                    new Uint8Array(data)
+                );
+                return decoder.decode(decrypted);
+            } catch (error) {
+                console.error('Decryption error:', error);
+                throw new Error('Message decryption failed');
+            }
+        }
+
+        function formatMessageTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const isToday = date.toDateString() === now.toDateString();
+            
+            return isToday 
+                ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + 
+                  date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
         async function sendMessage() {
@@ -625,7 +710,7 @@
 
                 const messageData = {
                     type: 'message',
-                    content: encryptMessage(sanitizeInput(message)),
+                    content: await encryptMessage(sanitizeInput(message)),
                     room: currentRoom,
                     user: currentUser?.username,
                     timestamp: Date.now()
@@ -656,24 +741,27 @@
         }
         
         // Render messages in the chat
-        function renderMessage(data) {
+        async function renderMessage(data) {
+            if (messageCache.has(data.id)) return;
+            messageCache.set(data.id, data);
             try {
-                if (messageCache.has(data.id)) return;
-                messageCache.set(data.id, data);
-                
-                const decryptedMessage = decryptMessage(data.content);
+                const decryptedMessage = await decryptMessage(data.content);
+                const isOutgoing = data.user === currentUser.username;
                 const messageElement = document.createElement('div');
-                messageElement.classList.add('message', data.user === currentUser.username ? 'message-outgoing' : 'message-incoming');
+                messageElement.classList.add('message', isOutgoing ? 'message-outgoing' : 'message-incoming');
                 messageElement.innerHTML = `
+                    <div class="message-header">
+                        <div class="message-avatar">${data.user[0].toUpperCase()}</div>
+                        <span>${data.user}</span>
+                        <span class="encrypted-badge">🔒 Encrypted</span>
+                    </div>
                     <div>${decryptedMessage}</div>
                     <div class="message-meta">
-                        <span>${data.user}</span>
-                        <span>${new Date(data.timestamp).toLocaleTimeString()}</span>
+                        <span>${formatMessageTime(data.timestamp)}</span>
                     </div>
                 `;
                 messagesContainer.appendChild(messageElement);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                console.log('Message rendered:', data);
             } catch (error) {
                 console.error('Error rendering message:', error);
                 showError('Failed to render message');
