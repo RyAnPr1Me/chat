@@ -27,15 +27,22 @@ wss.on('connection', async (ws, req) => {
     ws.userId = user.id;
     clients.set(ws.userId, ws);
 
+    // Fetch recent messages with user info
     const { data: messages } = await supabase
       .from('messages')
-      .select('*')
+      .select(`
+        *,
+        users:user_id (
+          username,
+          avatar_url
+        )
+      `)
       .order('created_at', { ascending: false })
       .limit(50);
 
     ws.send(JSON.stringify({
       type: 'init',
-      messages,
+      messages: messages.reverse(),
       users: Array.from(clients.keys())
     }));
 
