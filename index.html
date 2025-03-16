@@ -565,7 +565,24 @@
             themeToggle.addEventListener('click', toggleTheme);
         }
         
-        // Send message to the WebSocket server
+        // Encryption and Decryption functions
+        function encryptMessage(message, shift = 3) {
+            return message.split('').map(char => {
+                const code = char.charCodeAt(0);
+                if (code >= 65 && code <= 90) {
+                    return String.fromCharCode(((code - 65 + shift) % 26) + 65);
+                } else if (code >= 97 && code <= 122) {
+                    return String.fromCharCode(((code - 97 + shift) % 26) + 97);
+                } else {
+                    return char;
+                }
+            }).join('');
+        }
+
+        function decryptMessage(message, shift = 3) {
+            return encryptMessage(message, 26 - shift);
+        }
+
         function sendMessage() {
             try {
                 const message = messageInput.value.trim();
@@ -574,25 +591,29 @@
                 if (!isConnected) {
                     throw new Error('Not connected to server');
                 }
-        
+
+                const encryptedMessage = encryptMessage(message);
                 const messageData = {
                     type: 'message',
-                    content: sanitizeInput(message),
+                    content: sanitizeInput(encryptedMessage),
                     room: currentRoom,
                     user: currentUser?.username,
                     timestamp: Date.now()
                 };
-        
+
                 socket.send(JSON.stringify(messageData));
                 console.log('Message sent:', messageData);
                 messageInput.value = '';
                 sendButton.disabled = true;
+
+                // Render the message immediately
+                renderMessage(messageData);
             } catch (error) {
                 console.error('Send message error:', error);
                 showError(error.message);
             }
         }
-        
+
         // Handle incoming messages
         function onSocketMessage(event) {
             const data = JSON.parse(event.data);
@@ -607,10 +628,11 @@
         
         // Render messages in the chat
         function renderMessage(data) {
+            const decryptedMessage = decryptMessage(data.content);
             const messageElement = document.createElement('div');
             messageElement.classList.add('message', data.user === currentUser.username ? 'message-outgoing' : 'message-incoming');
             messageElement.innerHTML = `
-                <div>${data.content}</div>
+                <div>${decryptedMessage}</div>
                 <div class="message-meta">
                     <span>${data.user}</span>
                     <span>${new Date().toLocaleTimeString()}</span>
