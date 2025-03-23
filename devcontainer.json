@@ -1,0 +1,6 @@
+{
+  "name": "Your Dev Container",
+  "extensions": [
+    "github.copilot"
+  ]
+}
