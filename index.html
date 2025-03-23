@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dark Mode Chat Room</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -17,956 +18,397 @@
             --input-bg: #40444b;
             --hover-color: #34373c;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-family: -apple-system, system, sans-serif;
         }
-        
+
         body {
-            background-color: var(--bg-color);
+            background: var(--bg-color);
             color: var(--text-color);
-            min-height: 100vh;
+            height: 100vh;
             overflow: hidden;
         }
-        
+
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .login-form {
+            background: var(--surface-color);
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .login-form h2 {
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text-color);
+            border-radius: 4px;
+        }
+
+        .login-form button {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
         .chat-container {
-            max-width: 1400px;
-            height: 100vh;
-            margin: 0 auto;
             display: grid;
             grid-template-columns: 250px 1fr;
-            background-color: var(--surface-color);
+            height: 100vh;
         }
-        
-        .chat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            background-color: var(--surface-color);
-            border-radius: 10px 10px 0 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .brand {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background-color: var(--primary-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-        }
-        
-        .chat-sidebar {
-            background-color: var(--bg-color);
+
+        .sidebar {
+            background: var(--surface-color);
             border-right: 1px solid var(--border-color);
             padding: 1rem;
             display: flex;
             flex-direction: column;
             gap: 1rem;
         }
-        
-        .chat-main {
-            display: flex;
-            flex-grow: 1;
-            height: calc(100vh - 2rem);
-            border-radius: 10px;
-            background-color: var(--surface-color);
-            overflow: hidden;
-        }
-        
-        .chat-messages {
-            flex-grow: 1;
+
+        .main-content {
             display: flex;
             flex-direction: column;
-            overflow: hidden;
         }
-        
-        .messages-container {
+
+        .chat-header {
             padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            overflow-y: auto;
-            scroll-behavior: smooth;
-        }
-        
-        .message {
-            display: flex;
-            gap: 1rem;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            background-color: var(--hover-color);
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .message-header {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .message-avatar {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background-color: var(--primary-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-
-        .encrypted-badge {
-            font-size: 0.7rem;
-            padding: 0.2rem 0.4rem;
-            border-radius: 0.3rem;
-            background-color: var(--secondary-color);
-            color: white;
-            margin-left: auto;
-        }
-        
-        .message-outgoing {
-            background-color: var(--primary-color);
-            margin-left: auto;
-            max-width: 80%;
-        }
-        
-        .message-incoming {
-            background-color: var(--hover-color);
-            max-width: 80%;
-        }
-        
-        .message-system {
-            align-self: center;
-            background-color: var(--border-color);
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-        
-        .message-meta {
+            background: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
-            margin-top: 0.5rem;
-            font-size: 0.75rem;
-            opacity: 0.7;
+            align-items: center;
         }
-        
-        .chat-input {
-            display: flex;
-            gap: 10px;
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
             padding: 1rem;
-            background-color: var(--surface-color);
-            border-top: 1px solid var(--border-color);
         }
-        
-        .message-input {
-            flex-grow: 1;
-            padding: 0.8rem 1rem;
-            border-radius: 1.5rem;
-            border: none;
-            background-color: var(--input-bg);
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: var(--surface-color);
+            border-radius: 4px;
+            max-width: 80%;
+        }
+
+        .message.outgoing {
+            margin-left: auto;
+            background: var(--primary-color);
+        }
+
+        .input-area {
+            padding: 1rem;
+            background: var(--surface-color);
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
             color: var(--text-color);
-            font-size: 1rem;
-            outline: none;
+            border-radius: 4px;
         }
-        
-        .message-input:focus {
-            box-shadow: 0 0 0 2px var(--primary-color);
-        }
-        
-        .send-button {
-            background-color: var(--primary-color);
+
+        .input-area button {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 1.2rem;
+            border-radius: 4px;
             cursor: pointer;
+        }
+
+        .room-list, .user-list {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: background-color 0.2s;
+            flex-direction: column;
+            gap: 0.5rem;
         }
-        
-        .send-button:hover {
-            background-color: var(--secondary-color);
-        }
-        
-        .send-button:disabled {
-            background-color: var(--border-color);
-            cursor: not-allowed;
-        }
-        
-        .room-list {
-            margin-top: 1rem;
-        }
-        
-        .room-item {
-            padding: 0.8rem;
-            border-radius: 5px;
-            margin-bottom: 0.5rem;
+
+        .room-item, .user-item {
+            padding: 0.5rem;
+            border-radius: 4px;
             cursor: pointer;
-            transition: background-color 0.2s;
         }
-        
-        .room-item:hover {
-            background-color: var(--hover-color);
+
+        .room-item:hover, .user-item:hover {
+            background: var(--hover-color);
         }
-        
+
         .room-item.active {
-            background-color: var(--primary-color);
+            background: var(--primary-color);
         }
-        
-        .sidebar-header {
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-            color: var(--text-color);
-            opacity: 0.7;
-        }
-        
-        .user-list {
-            margin-top: 2rem;
-        }
-        
-        .user-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+
+        .status {
             padding: 0.5rem;
-            border-radius: 5px;
-            margin-bottom: 0.5rem;
-        }
-        
-        .user-status {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-        
-        .status-online {
-            background-color: var (--success-color);
-        }
-        
-        .status-offline {
-            background-color: var(--error-color);
-        }
-        
-        .theme-toggle {
-            background: none;
-            border: none;
-            color: var(--text-color);
-            font-size: 1.2rem;
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .theme-toggle:hover {
-            background-color: var(--hover-color);
-        }
-        
-        .connection-status {
+            text-align: center;
+            background: var(--surface-color);
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 0.85rem;
-            z-index: 1000;
-            transition: opacity 0.3s;
+            bottom: 1rem;
+            right: 1rem;
+            border-radius: 4px;
             opacity: 0;
+            transition: opacity 0.3s;
         }
-        
-        .connection-status.show {
+
+        .status.show {
             opacity: 1;
         }
-        
-        .status-connected {
-            background-color: var(--success-color);
-            color: white;
-        }
-        
-        .status-disconnected {
-            background-color: var(--error-color);
-            color: white;
-        }
-        
-        .status-connecting {
-            background-color: #ff9800;
-            color: white;
-        }
-        
-        .create-room {
-            padding: 0.5rem;
-            border-radius: 5px;
-            background-color: var(--input-bg);
-            margin-top: 1rem;
-            display: flex;
-            gap: 5px;
-        }
-        
-        .create-room-input {
-            flex-grow: 1;
-            background: none;
-            border: none;
-            color: var (--text-color);
-            outline: none;
-        }
-        
-        .create-room-button {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 3px;
-            padding: 0.3rem 0.5rem;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-        
+
         @media (max-width: 768px) {
-            .chat-main {
-                flex-direction: column;
+            .chat-container {
+                grid-template-columns: 1fr;
             }
-            
-            .chat-sidebar {
-                width: 100%;
-                height: auto;
-                border-right: none;
-                border-bottom: 1px solid var(--border-color);
-            }
-            
-            .message {
-                max-width: 90%;
+
+            .sidebar {
+                display: none;
             }
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 </head>
 <body>
+    <div id="loginScreen" class="login-screen">
+        <form class="login-form" id="loginForm">
+            <h2>Enter Username</h2>
+            <input type="text" id="usernameInput" placeholder="Username (3-20 characters)" maxlength="20">
+            <button type="submit">Join Chat</button>
+        </form>
+    </div>
+
     <div class="chat-container">
-        <div class="chat-main">
-            <div class="chat-sidebar">
-                <div class="sidebar-header">Rooms</div>
-                <div class="room-list" id="roomList">
-                    <!-- Room items will be added here -->
-                </div>
-                
-                <div class="create-room">
-                    <input type="text" class="create-room-input" id="createRoomInput" placeholder="New room name">
-                    <button class="create-room-button" id="createRoomButton">Create</button>
-                </div>
-                
-                <div class="sidebar-header">Online Users</div>
-                <div class="user-list" id="userList">
-                    <!-- User items will be added here -->
-                </div>
+        <div class="sidebar">
+            <h3>Rooms</h3>
+            <div class="room-list" id="roomList"></div>
+            <h3>Online Users</h3>
+            <div class="user-list" id="userList"></div>
+        </div>
+
+        <div class="main-content">
+            <div class="chat-header">
+                <h2>Dark Chat</h2>
+                <button id="themeToggle">🌙</button>
             </div>
-            
-            <div class="chat-messages">
-                <div class="chat-header">
-                    <div class="brand">Dark Chat</div>
-                    <div class="user-info">
-                        <button class="theme-toggle" id="themeToggle">☀️</button>
-                        <div class="user-avatar" id="userAvatar"></div>
-                        <div class="username" id="username"></div>
-                    </div>
-                </div>
-                
-                <div class="messages-container" id="messagesContainer">
-                    <!-- Messages will be added here -->
-                </div>
-                
-                <div class="chat-input">
-                    <input type="text" class="message-input" id="messageInput" placeholder="Type a message...">
-                    <button class="send-button" id="sendButton">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </button>
-                </div>
+            <div class="messages" id="messages"></div>
+            <div class="input-area">
+                <input type="text" id="messageInput" placeholder="Type a message...">
+                <button id="sendButton">Send</button>
             </div>
         </div>
     </div>
-    
-    <div class="connection-status" id="connectionStatus"></div>
-    
+
+    <div id="status" class="status"></div>
+
     <script>
-        // Minimal configuration and helper constants
-        const CONFIG = {
-            MAX_MESSAGE_LENGTH: 1000,
-            WS_MAX_RETRIES: 5,
-            WS_HEARTBEAT_INTERVAL: 30000,
-            CONNECTION_TIMEOUT: 5000,
-            RECONNECT_DELAY: 2000,
-            INACTIVE_TIMEOUT: 300000,
-            TYPING_TIMEOUT: 1000,
-            LOAD_MORE_THRESHOLD: 100,
-            THEME_STORAGE_KEY: 'darkMode'
-        };
-
-        // Define SERVER_PORT for WebSocket connection (fallback to default ports)
-        const SERVER_PORT = window.location.port || (window.location.protocol === 'https:' ? "443" : "80");
-
-        // Supabase configuration
+        //Supabase Setup
         const SUPABASE_URL = 'https://ezuyuhakarqlbxszaluq.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6dXl1aGFrYXJxbGJ4c3phbHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNDc0NDcsImV4cCI6MjA1NzcyMzQ0N30.j0mwiHHyBDs9LcUe6S1IxMsNujAo3yzrmt7AZpH5_d0';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+
+        // App state
+        let currentUser = null;
+        let currentRoom = 'general';
+        let socket = null;
+        let darkMode = localStorage.getItem('darkMode') === 'true';
 
         // DOM Elements
-        const messagesContainer = document.getElementById('messagesContainer');
+        const loginScreen = document.getElementById('loginScreen');
+        const loginForm = document.getElementById('loginForm');
+        const usernameInput = document.getElementById('usernameInput');
+        const messages = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
         const roomList = document.getElementById('roomList');
         const userList = document.getElementById('userList');
         const themeToggle = document.getElementById('themeToggle');
-        const userAvatar = document.getElementById('userAvatar');
-        const usernameElement = document.getElementById('username');
-        const connectionStatus = document.getElementById('connectionStatus');
-        const createRoomInput = document.getElementById('createRoomInput');
-        const createRoomButton = document.getElementById('createRoomButton');
-        
-        // App State
-        let socket;
-        let currentUser = null;
-        let currentRoom = 'general';
-        let darkMode = true;
-        let users = [];
-        let rooms = ['general', 'random', 'support'];
-        let isConnected = false;
-        let reconnectAttempts = 0;
-        let reconnectInterval;
-        let typingTimeout;
-        let lastActivity = Date.now();
-        let messageCache = new Map();
-        
-        // Initialize chat
-        function initChat() {
-            setupEventListeners();
-            initializeSocket().then(setupUser).catch(console.error);
-            setupThemeToggle();
-        }
-        
-        // Setup user data
-        function setupUser() {
-            // Generate a random user ID for the current user
-            const userId = Math.floor(Math.random() * 1000) + 10;
-            
-            // Prompt for username
-            let username = prompt('Enter your username:');
-            while (!username || username.trim() === '') {
-                username = prompt('Username cannot be empty. Please enter a valid username:');
-            }
-            
-            // Set current user
+        const status = document.getElementById('status');
+
+        // Initialize chat application
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = usernameInput.value.trim();
+            if (username.length < 3 || username.length > 20) return;
+
             currentUser = {
-                id: userId,
-                username: username.toLowerCase(),
-                online: true
+                id: Date.now(),
+                username: username
             };
-            
-            // Update user avatar and username
-            userAvatar.textContent = username[0].toUpperCase();
-            usernameElement.textContent = username;
-        }
-        
-        // Initialize WebSocket connection
-        async function initializeSocket() {
-            try {
-                const token = await getAuthToken();
-                const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const wsUrl = `${wsProtocol}//${window.location.hostname}:${SERVER_PORT}?token=${token}`;
-                socket = new WebSocket(wsUrl);
-                await new Promise((resolve, reject) => {
-                    setupSocketEvents(resolve, reject);
-                });
-                setupHeartbeat();
-                setupActivityMonitoring();
-                setupScrollHandler();
-            } catch (error) {
-                handleConnectionError(error);
-            }
-        }
 
-        async function getAuthToken() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                const { data: { user: newUser } } = await supabase.auth.signUp({
-                    email: prompt('Enter your email:'),
-                    password: prompt('Create a password:')
-                });
-                return newUser.jwt_token;
-            }
-            return user.jwt_token;
-        }
+            localStorage.setItem('username', username);
+            loginScreen.style.display = 'none';
+            initializeWebSocket();
+        });
 
-        function setupHeartbeat() {
-            const heartbeat = () => {
-                if (socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({ type: 'ping' }));
-                }
-            };
-            
-            const heartbeatInterval = setInterval(heartbeat, CONFIG.WS_HEARTBEAT_INTERVAL);
-            
-            socket.addEventListener('close', () => {
-                clearInterval(heartbeatInterval);
-            });
-        }
-
-        function handleConnectionError(error) {
-            if (reconnectAttempts < CONFIG.WS_MAX_RETRIES) {
-                reconnectAttempts++;
-                setTimeout(() => {
-                    initializeSocket().catch(handleConnectionError);
-                }, CONFIG.WS_RETRY_INTERVAL * reconnectAttempts);
-            } else {
-                updateConnectionStatus('error', 'Connection failed. Please refresh the page.');
-            }
-        }
-
-        // Setup WebSocket event handlers
-        function setupSocketEvents(resolve, reject) {
-            const connectionTimeout = setTimeout(() => {
-                if (socket.readyState !== WebSocket.OPEN) {
-                    socket.close();
-                    reject(new Error('Connection timeout'));
-                    updateConnectionStatus('disconnected', 'Connection timeout');
-                }
-            }, CONFIG.CONNECTION_TIMEOUT);
-        
-            socket.addEventListener('open', () => {
-                clearTimeout(connectionTimeout);
-                isConnected = true;
-                if (reconnectInterval) {
-                    clearTimeout(reconnectInterval);
-                    reconnectInterval = null;
-                }
-                updateConnectionStatus('connected', 'Connected to server');
-                reconnectAttempts = 0;
-                resolve();
-            });
-        
-            socket.addEventListener('message', (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (!data.type) {
-                        throw new Error('Invalid message format');
-                    }
-                    onSocketMessage(event);
-                } catch (error) {
-                    showError('Invalid message received');
-                }
-            });
-        
-            socket.addEventListener('close', () => {
-                isConnected = false;
-                const message = reconnectAttempts < CONFIG.MAX_RECONNECT_ATTEMPTS
-                    ? `Disconnected. Reconnecting (${reconnectAttempts + 1}/${CONFIG.MAX_RECONNECT_ATTEMPTS})...`
-                    : 'Connection failed. Please refresh the page.';
-                updateConnectionStatus('disconnected', message);
-                if (reconnectAttempts < CONFIG.MAX_RECONNECT_ATTEMPTS) {
-                    reconnectAttempts++;
-                    reconnectInterval = setTimeout(() => {
-                        initializeSocket().then(setupUser).catch(console.error);
-                    }, CONFIG.RECONNECT_DELAY);
-                }
-            });
-        
-            socket.addEventListener('error', (error) => {
-                updateConnectionStatus('error', 'Connection error occurred');
-                reject(error);
-            });
-        }
-        
-        // Setup event listeners
-        function setupEventListeners() {
-            // Send message on button click
-            sendButton.addEventListener('click', sendMessage);
-            
-            // Send message on Enter key
-            messageInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    sendMessage();
-                }
-            });
-            
-            // Enable/disable send button based on input
-            messageInput.addEventListener('input', () => {
-                sendButton.disabled = messageInput.value.trim() === '';
-            });
-            
-            // Handle room creation and theme toggle
-            createRoomButton.addEventListener('click', createRoom);
-            themeToggle.addEventListener('click', toggleTheme);
-        }
-        
-        // Encryption and Decryption functions
-        const ENCRYPTION_KEY = 'EC4F9267-8C6B-4D2F-934B-8C911D1A7D56'; // use the same as in .env
-
-        async function encryptMessage(message) {
-            try {
-                const encoder = new TextEncoder();
-                const data = encoder.encode(message);
-                const key = await crypto.subtle.importKey(
-                    'raw',
-                    encoder.encode(ENCRYPTION_KEY),
-                    { name: 'AES-GCM' },
-                    false,
-                    ['encrypt']
-                );
-                const iv = crypto.getRandomValues(new Uint8Array(12));
-                const encrypted = await crypto.subtle.encrypt(
-                    { name: 'AES-GCM', iv },
-                    key,
-                    data
-                );
-                return JSON.stringify({
-                    iv: Array.from(iv),
-                    data: Array.from(new Uint8Array(encrypted))
-                });
-            } catch (error) {
-                throw new Error('Message encryption failed');
-            }
-        }
-
-        async function decryptMessage(encryptedMessage) {
-            try {
-                const { iv, data } = JSON.parse(encryptedMessage);
-                const decoder = new TextDecoder();
-                const key = await crypto.subtle.importKey(
-                    'raw',
-                    new TextEncoder().encode(ENCRYPTION_KEY),
-                    { name: 'AES-GCM' },
-                    false,
-                    ['decrypt']
-                );
-                const decrypted = await crypto.subtle.decrypt(
-                    { name: 'AES-GCM', iv: new Uint8Array(iv) },
-                    key,
-                    new Uint8Array(data)
-                );
-                return decoder.decode(decrypted);
-            } catch (error) {
-                throw new Error('Message decryption failed');
-            }
-        }
-
-        function formatMessageTime(timestamp) {
-            const date = new Date(timestamp);
-            const now = new Date();
-            const isToday = date.toDateString() === now.toDateString();
-            
-            return isToday 
-                ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + 
-                  date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-
-        async function sendMessage() {
-            try {
-                const message = messageInput.value.trim();
-                if (!message || !validateMessage(message)) return;
-
-                const messageData = {
-                    type: 'message',
-                    content: await encryptMessage(sanitizeInput(message)),
-                    room: currentRoom,
-                    user: currentUser?.username,
-                    timestamp: Date.now()
-                };
-
-                if (socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify(messageData));
-                    messageInput.value = '';
-                    renderMessage(messageData);
-                } else {
-                    throw new Error('Connection lost. Trying to reconnect...');
-                }
-            } catch (error) {
-                handleConnectionError(error);
-            }
-        }
-
-        // Handle incoming messages
-        function onSocketMessage(event) {
-            const data = JSON.parse(event.data);
-            if (data.type === 'message') {
-                renderMessage(data);
-            } else if (data.type === 'user_list') {
-                updateUserList(data.users);
-            } else if (data.type === 'room_list') {
-                updateRoomList(data.rooms);
-            }
-        }
-        
-        // Render messages in the chat
-        async function renderMessage(data) {
-            if (messageCache.has(data.id)) return;
-            messageCache.set(data.id, data);
-            
-            try {
-                const decryptedMessage = await decryptMessage(data.content);
-                const isOutgoing = data.user === currentUser.username;
-                
-                const messageEl = document.createElement('div');
-                messageEl.className = `message ${isOutgoing ? 'message-outgoing' : 'message-incoming'}`;
-                
-                messageEl.innerHTML = `
-                    <div class="message-content">
-                        <div class="message-header">
-                            <span class="username">${data.user}</span>
-                            <span class="timestamp">${formatMessageTime(data.timestamp)}</span>
-                        </div>
-                        <div class="message-text">${decryptedMessage}</div>
-                    </div>
-                `;
-                
-                messagesContainer.appendChild(messageEl);
-                scrollToBottom();
-            } catch (error) {
-                showError('Failed to render message');
-            }
-        }
-
-        function scrollToBottom() {
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        // Add improved error handling
-        function showError(message) {
-            const errorEl = document.createElement('div');
-            errorEl.className = 'error-message';
-            errorEl.textContent = message;
-            messagesContainer.appendChild(errorEl);
-            setTimeout(() => errorEl.remove(), 3000);
-        }
-
-        async function renderMessages() {
-            messagesContainer.innerHTML = '';
-
-            try {
-                // Fetch messages for the current room from Supabase using the correct client
-                const { data: messages, error } = await supabaseClient
-                    .from('messages')
-                    .select('*')
-                    .eq('room', currentRoom)
-                    .order('timestamp', { ascending: true });
-
-                if (error) {
-                    throw new Error('Failed to fetch messages');
-                }
-
-                messages.forEach(renderMessage);
-            } catch (error) {
-                showError('Failed to load messages');
-            }
-        }
-        
-        // Update user list in the sidebar
-        function updateUserList(users) {
-            userList.innerHTML = '';
-            users.forEach(user => {
-                const userItem = document.createElement('div');
-                userItem.classList.add('user-item');
-                userItem.innerHTML = `
-                    <div class="user-avatar">${user.username[0].toUpperCase()}</div>
-                    <div class="username">${user.username}</div>
-                    <div class="user-status ${user.online ? 'status-online' : 'status-offline'}"></div>
-                `;
-                userList.appendChild(userItem);
-            });
-        }
-        
-        // Update room list in the sidebar
-        function updateRoomList(rooms) {
-            roomList.innerHTML = '';
-            rooms.forEach(room => {
-                const roomItem = document.createElement('div');
-                roomItem.classList.add('room-item');
-                roomItem.textContent = room;
-                roomItem.addEventListener('click', () => joinRoom(room));
-                roomList.appendChild(roomItem);
-            });
-        }
-        
-        // Join a room
-        function joinRoom(room) {
-            if (currentRoom !== room) {
-                currentRoom = room;
-                renderMessages();
-                socket.send(JSON.stringify({ type: 'join_room', room: currentRoom, user: currentUser.username }));
-            }
-        }
-        
-        // Render available rooms in the sidebar
-        function renderRooms() {
-            rooms.forEach(room => {
-                const roomItem = document.createElement('div');
-                roomItem.classList.add('room-item');
-                roomItem.textContent = room;
-                roomItem.addEventListener('click', () => joinRoom(room));
-                roomList.appendChild(roomItem);
-            });
-        }
-        
-        // Handle room creation
-        function createRoom() {
-            const newRoomName = createRoomInput.value.trim();
-            if (newRoomName && !rooms.includes(newRoomName)) {
-                rooms.push(newRoomName);
-                createRoomInput.value = '';
-                updateRoomList(rooms);
-                socket.send(JSON.stringify({ type: 'create_room', room: newRoomName }));
-            }
-        }
-        
-        // Toggle dark/light theme
-        function toggleTheme() {
-            try {
-                darkMode = !darkMode;
-                const theme = {
-                    dark: {
-                        bg: '#121212',
-                        text: '#e0e0e0',
-                        primary: '#6200ee',
-                        secondary: '#3700b3'
-                    },
-                    light: {
-                        bg: '#ffffff',
-                        text: '#121212',
-                        primary: '#6200ee',
-                        secondary: '#3700b3'
-                    }
-                };
-
-                const currentTheme = darkMode ? theme.dark : theme.light;
-                
-                Object.entries(currentTheme).forEach(([key, value]) => {
-                    document.documentElement.style.setProperty(`--${key}-color`, value);
-                });
-                
-                themeToggle.textContent = darkMode ? '☀️' : '🌙';
-                localStorage.setItem(CONFIG.THEME_STORAGE_KEY, darkMode);
-            } catch (error) {
-                showError('Failed to toggle theme');
-            }
-        }
-        
-        // Update connection status message
-        function updateConnectionStatus(status, message) {
-            connectionStatus.textContent = message;
-            connectionStatus.classList.remove('status-connected', 'status-disconnected', 'status-connecting');
-            connectionStatus.classList.add(`status-${status}`);
-        }
-
-        function showError(message, duration = 3000) {
-            updateConnectionStatus('error', message);
-            setTimeout(() => {
-                if (isConnected) {
-                    updateConnectionStatus('connected', 'Connected to server');
-                }
-            }, duration);
-        }
-
-        function sanitizeInput(input) {
-            return input
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .trim();
-        }
-
-        function validateMessage(message) {
-            if (!message) {
-                throw new Error('Message cannot be empty');
-            }
-            if (message.length > CONFIG.MAX_MESSAGE_LENGTH) {
-                throw new Error(`Message too long (max ${CONFIG.MAX_MESSAGE_LENGTH} characters)`);
-            }
-            return true;
-        }
-
-        function setupActivityMonitoring() {
-            document.addEventListener('mousemove', updateActivity);
-            document.addEventListener('keypress', updateActivity);
-            messageInput.addEventListener('input', handleTyping);
-            
-            setInterval(() => {
-                if (Date.now() - lastActivity > CONFIG.INACTIVE_TIMEOUT) {
-                    updateConnectionStatus('idle', 'You are currently inactive');
-                }
-            }, CONFIG.INACTIVE_TIMEOUT / 2);
-        }
-
-        function updateActivity() {
-            lastActivity = Date.now();
-            if (!isConnected) return;
-            updateConnectionStatus('connected', 'Connected to server');
-        }
-
-        function handleTyping() {
-            if (!isConnected) return;
-            
-            socket.send(JSON.stringify({
-                type: 'typing',
-                room: currentRoom,
-                user: currentUser.username
+        async function initializeWebSocket() {
+            const token = btoa(JSON.stringify({
+                id: currentUser.id,
+                username: currentUser.username,
+                timestamp: Date.now()
             }));
 
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => {
-                socket.send(JSON.stringify({
-                    type: 'stop_typing',
-                    room: currentRoom,
-                    user: currentUser.username
-                }));
-            }, CONFIG.TYPING_TIMEOUT);
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}?token=${token}`;
+
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = () => {
+                showStatus('Connected', 'success');
+                joinRoom('general');
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+
+            socket.onclose = () => {
+                showStatus('Disconnected', 'error');
+                setTimeout(initializeWebSocket, 5000);
+            };
         }
 
-        function setupScrollHandler() {
-            messagesContainer.addEventListener('scroll', () => {
-                if (messagesContainer.scrollTop < CONFIG.LOAD_MORE_THRESHOLD) {
-                    loadMoreMessages();
-                }
+        function handleMessage(data) {
+            switch (data.type) {
+                case 'message':
+                    addMessage(data);
+                    break;
+                case 'user_list':
+                    updateUserList(data.users);
+                    break;
+                case 'room_list':
+                    updateRoomList(data.rooms);
+                    break;
+            }
+        }
+
+        function addMessage(message) {
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${message.user === currentUser.username ? 'outgoing' : ''}`;
+            messageEl.innerHTML = `
+                <div class="message-header">
+                    <span class="username">${message.user}</span>
+                    <span class="time">${new Date(message.timestamp).toLocaleTimeString()}</span>
+                </div>
+                <div class="message-content">${message.content}</div>
+            `;
+            messages.appendChild(messageEl);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function updateUserList(users) {
+            userList.innerHTML = users.map(user => `
+                <div class="user-item">
+                    <span class="user-status ${user.online ? 'online' : 'offline'}"></span>
+                    ${user.username}
+                </div>
+            `).join('');
+        }
+
+        function updateRoomList(rooms) {
+            roomList.innerHTML = rooms.map(room => `
+                <div class="room-item ${room === currentRoom ? 'active' : ''}" 
+                     onclick="joinRoom('${room}')">
+                    ${room}
+                </div>
+            `).join('');
+        }
+
+        function joinRoom(room) {
+            if (socket.readyState === WebSocket.OPEN) {
+                currentRoom = room;
+                socket.send(JSON.stringify({
+                    type: 'join_room',
+                    room: room
+                }));
+                updateRoomList(['general', 'random', room]);
+            }
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status show status-${type}`;
+            setTimeout(() => status.classList.remove('show'), 3000);
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', () => {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            socket.send(JSON.stringify({
+                type: 'message',
+                content: message,
+                room: currentRoom,
+                timestamp: Date.now()
+            }));
+
+            messageInput.value = '';
+        });
+
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendButton.click();
+        });
+
+        function setupThemeToggle() {
+            themeToggle.addEventListener('click', () => {
+                darkMode = !darkMode;
+                document.body.classList.toggle('light-mode');
+                themeToggle.textContent = darkMode ? '☀️' : '🌙';
+                localStorage.setItem('darkMode', darkMode);
             });
         }
 
-        async function loadMoreMessages() {
-            // Implementation for loading older messages
-            // ...
+
+        // Initialize theme
+        if (darkMode) {
+            document.body.classList.add('dark-mode');
+            themeToggle.textContent = '🌙';
         }
-        
+
+        // Restore username if available
+        const savedUsername = localStorage.getItem('username');
+        if (savedUsername) {
+            usernameInput.value = savedUsername;
+        }
+
         // Initialize the chat application on page load
-        window.onload = initChat;
+        window.onload = async () => {
+            setupThemeToggle();
+            //await initChat(); //Commented out as there is no initChat function defined.  Presumably this was intended to be integrated with the server-side code.
+        };
     </script>
 </body>
 </html>
