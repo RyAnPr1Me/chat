@@ -3,412 +3,995 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dark Mode Chat Room</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Encrypted P2P Chat</title>
     <style>
         :root {
-            --bg-color: #1a1a1a;
-            --text-color: #ffffff;
-            --primary-color: #7289da;
-            --secondary-color: #5865f2;
-            --surface-color: #2c2f33;
-            --error-color: #ef4444;
-            --success-color: #22c55e;
-            --border-color: #40444b;
-            --input-bg: #40444b;
-            --hover-color: #34373c;
+            --bg-primary: #121212;
+            --bg-secondary: #1e1e1e;
+            --bg-tertiary: #2c2c2c;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --primary: #1a73e8;
+            --primary-dark: #1557b0;
+            --success: #34a853;
+            --error: #ea4335;
+            --warning: #fbbc04;
+            --border: #3c4043;
+            --shadow: rgba(0, 0, 0, 0.3);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, system, sans-serif;
+            font-family: 'Roboto', 'Segoe UI', -apple-system, system-ui, sans-serif;
         }
 
         body {
-            background: var(--bg-color);
-            color: var(--text-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
             height: 100vh;
             overflow: hidden;
         }
 
-        .login-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: var(--bg-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .login-form {
-            background: var(--surface-color);
-            padding: 2rem;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 400px;
-        }
-
-        .login-form h2 {
-            margin-bottom: 1rem;
-            text-align: center;
-        }
-
-        .login-form input {
-            width: 100%;
-            padding: 0.75rem;
-            margin-bottom: 1rem;
-            border: 1px solid var(--border-color);
-            background: var(--input-bg);
-            color: var(--text-color);
-            border-radius: 4px;
-        }
-
-        .login-form button {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .chat-container {
-            display: grid;
-            grid-template-columns: 250px 1fr;
-            height: 100vh;
-        }
-
-        .sidebar {
-            background: var(--surface-color);
-            border-right: 1px solid var(--border-color);
-            padding: 1rem;
+        .container {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            height: 100vh;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px var(--shadow);
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header h1::before {
+            content: '🔒';
+            font-size: 24px;
+        }
+
+        .device-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 14px;
+        }
+
+        .device-id {
+            background: var(--bg-tertiary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .device-id strong {
+            color: var(--primary);
+        }
+
+        .copy-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
         .main-content {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            flex: 1;
+            overflow: hidden;
         }
 
-        .chat-header {
-            padding: 1rem;
-            background: var(--surface-color);
-            border-bottom: 1px solid var(--border-color);
+        .sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .connection-card {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .connection-card h3 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .input-group input {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input:focus {
+            border-color: var(--primary);
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .btn-danger {
+            background: var(--error);
+        }
+
+        .btn-danger:hover {
+            background: #c5221f;
+        }
+
+        .connection-status {
+            background: var(--bg-tertiary);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .status-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 8px 0;
+            font-size: 13px;
         }
 
-        .messages {
+        .status-label {
+            color: var(--text-secondary);
+        }
+
+        .status-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .status-value.connected {
+            color: var(--success);
+        }
+
+        .status-value.disconnected {
+            color: var(--text-secondary);
+        }
+
+        .chat-area {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-messages {
             flex: 1;
             overflow-y: auto;
-            padding: 1rem;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            text-align: center;
+            gap: 16px;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 16px;
         }
 
         .message {
-            margin-bottom: 1rem;
-            padding: 0.75rem;
-            background: var(--surface-color);
-            border-radius: 4px;
-            max-width: 80%;
+            display: flex;
+            gap: 12px;
+            max-width: 70%;
+            animation: slideIn 0.2s ease-out;
         }
 
-        .message.outgoing {
-            margin-left: auto;
-            background: var(--primary-color);
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .message.sent .message-avatar {
+            background: var(--success);
+        }
+
+        .message-content {
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .message.sent .message-content {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .message-text {
+            font-size: 14px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .message.sent .message-time {
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .input-area {
-            padding: 1rem;
-            background: var(--surface-color);
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 20px;
             display: flex;
-            gap: 0.5rem;
+            gap: 12px;
+            align-items: center;
         }
 
         .input-area input {
             flex: 1;
-            padding: 0.75rem;
-            border: 1px solid var(--border-color);
-            background: var(--input-bg);
-            color: var(--text-color);
-            border-radius: 4px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
         }
 
-        .input-area button {
-            padding: 0.75rem 1.5rem;
-            background: var(--primary-color);
+        .input-area input:focus {
+            border-color: var(--primary);
+        }
+
+        .input-area input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--primary);
             color: white;
             border: none;
-            border-radius: 4px;
             cursor: pointer;
-        }
-
-        .room-list, .user-list {
             display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: background 0.2s;
         }
 
-        .room-item, .user-item {
-            padding: 0.5rem;
-            border-radius: 4px;
-            cursor: pointer;
+        .send-btn:hover:not(:disabled) {
+            background: var(--primary-dark);
         }
 
-        .room-item:hover, .user-item:hover {
-            background: var(--hover-color);
+        .send-btn:disabled {
+            background: var(--bg-tertiary);
+            cursor: not-allowed;
         }
 
-        .room-item.active {
-            background: var(--primary-color);
-        }
-
-        .status {
-            padding: 0.5rem;
-            text-align: center;
-            background: var(--surface-color);
+        .notification {
             position: fixed;
-            bottom: 1rem;
-            right: 1rem;
-            border-radius: 4px;
-            opacity: 0;
-            transition: opacity 0.3s;
+            top: 80px;
+            right: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            max-width: 320px;
+            box-shadow: 0 4px 12px var(--shadow);
+            animation: slideInRight 0.3s ease-out;
+            z-index: 1000;
         }
 
-        .status.show {
-            opacity: 1;
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--error);
+        }
+
+        .notification.info {
+            border-left: 4px solid var(--primary);
+        }
+
+        .connection-request {
+            background: var(--bg-tertiary);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+
+        .request-header {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        .request-device {
+            color: var(--primary);
+            font-family: 'Courier New', monospace;
+        }
+
+        .request-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .request-actions button {
+            flex: 1;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: var(--border);
         }
 
         @media (max-width: 768px) {
-            .chat-container {
+            .main-content {
                 grid-template-columns: 1fr;
             }
-
+            
             .sidebar {
                 display: none;
+            }
+
+            .message {
+                max-width: 85%;
             }
         }
     </style>
 </head>
 <body>
-    <div id="loginScreen" class="login-screen">
-        <form class="login-form" id="loginForm">
-            <h2>Enter Username</h2>
-            <input type="text" id="usernameInput" placeholder="Username (3-20 characters)" maxlength="20">
-            <button type="submit">Join Chat</button>
-        </form>
-    </div>
-
-    <div class="chat-container">
-        <div class="sidebar">
-            <h3>Rooms</h3>
-            <div class="room-list" id="roomList"></div>
-            <h3>Online Users</h3>
-            <div class="user-list" id="userList"></div>
+    <div class="container">
+        <div class="header">
+            <h1>Encrypted P2P Chat</h1>
+            <div class="device-info">
+                <div class="device-id">
+                    <span>Your Device ID:</span>
+                    <strong id="deviceIdDisplay">Generating...</strong>
+                    <button class="copy-btn" id="copyBtn" title="Copy Device ID">Copy</button>
+                </div>
+                <div class="status-indicator" id="statusIndicator"></div>
+            </div>
         </div>
 
         <div class="main-content">
-            <div class="chat-header">
-                <h2>Dark Chat</h2>
-                <button id="themeToggle">🌙</button>
+            <div class="sidebar">
+                <div id="connectionRequests"></div>
+                
+                <div class="connection-card">
+                    <h3>Connect to Device</h3>
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="targetDeviceId" 
+                            placeholder="Enter Device ID"
+                            maxlength="50"
+                        >
+                        <button class="btn" id="connectBtn">Connect</button>
+                    </div>
+                </div>
+
+                <div class="connection-status">
+                    <div class="status-item">
+                        <span class="status-label">Status:</span>
+                        <span class="status-value disconnected" id="connectionStatus">Disconnected</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Connected to:</span>
+                        <span class="status-value" id="connectedPeer">None</span>
+                    </div>
+                    <div class="status-item" style="padding-top: 12px;">
+                        <button class="btn btn-danger" id="disconnectBtn" disabled>Disconnect</button>
+                    </div>
+                </div>
             </div>
-            <div class="messages" id="messages"></div>
-            <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Type a message...">
-                <button id="sendButton">Send</button>
+
+            <div class="chat-area">
+                <div class="chat-messages" id="messages">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💬</div>
+                        <div class="empty-state-text">
+                            Connect to another device to start chatting securely
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <input 
+                        type="text" 
+                        id="messageInput" 
+                        placeholder="Type an encrypted message..."
+                        disabled
+                    >
+                    <button class="send-btn" id="sendBtn" disabled>➤</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <div id="status" class="status"></div>
+    <div id="notifications"></div>
 
     <script>
-        //Supabase Setup
-        const SUPABASE_URL = 'https://ezuyuhakarqlbxszaluq.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6dXl1aGFrYXJxbGJ4c3phbHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNDc0NDcsImV4cCI6MjA1NzcyMzQ0N30.j0mwiHHyBDs9LcUe6S1IxMsNujAo3yzrmt7AZpH5_d0';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-
-        // App state
-        let currentUser = null;
-        let currentRoom = 'general';
+        // Application state
         let socket = null;
-        let darkMode = localStorage.getItem('darkMode') === 'true';
+        let deviceId = null;
+        let connectedPeer = null;
+        let encryptionKey = null;
+        let myKeyPair = null;
 
         // DOM Elements
-        const loginScreen = document.getElementById('loginScreen');
-        const loginForm = document.getElementById('loginForm');
-        const usernameInput = document.getElementById('usernameInput');
-        const messages = document.getElementById('messages');
+        const deviceIdDisplay = document.getElementById('deviceIdDisplay');
+        const copyBtn = document.getElementById('copyBtn');
+        const targetDeviceIdInput = document.getElementById('targetDeviceId');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
         const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
-        const roomList = document.getElementById('roomList');
-        const userList = document.getElementById('userList');
-        const themeToggle = document.getElementById('themeToggle');
-        const status = document.getElementById('status');
+        const sendBtn = document.getElementById('sendBtn');
+        const messagesContainer = document.getElementById('messages');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const connectedPeerDisplay = document.getElementById('connectedPeer');
+        const connectionRequestsContainer = document.getElementById('connectionRequests');
+        const notificationsContainer = document.getElementById('notifications');
 
-        // Initialize chat application
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = usernameInput.value.trim();
-            if (username.length < 3 || username.length > 20) return;
+        // Generate or retrieve device ID
+        function getDeviceId() {
+            let id = localStorage.getItem('deviceId');
+            if (!id) {
+                id = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+                localStorage.setItem('deviceId', id);
+            }
+            return id;
+        }
 
-            currentUser = {
-                id: Date.now(),
-                username: username
-            };
+        // Initialize
+        async function init() {
+            deviceId = getDeviceId();
+            deviceIdDisplay.textContent = deviceId;
 
-            localStorage.setItem('username', username);
-            loginScreen.style.display = 'none';
-            initializeWebSocket();
-        });
+            // Generate encryption key pair
+            myKeyPair = await window.crypto.subtle.generateKey(
+                {
+                    name: "ECDH",
+                    namedCurve: "P-384"
+                },
+                true,
+                ["deriveKey"]
+            );
 
-        async function initializeWebSocket() {
-            const token = btoa(JSON.stringify({
-                id: currentUser.id,
-                username: currentUser.username,
-                timestamp: Date.now()
-            }));
+            connectWebSocket();
+        }
 
+        // WebSocket connection
+        function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}?token=${token}`;
+            const wsUrl = `${protocol}//${window.location.host}/ws?deviceId=${deviceId}`;
 
             socket = new WebSocket(wsUrl);
 
             socket.onopen = () => {
-                showStatus('Connected', 'success');
-                joinRoom('general');
+                console.log('Connected to relay server');
+                showNotification('Connected to server', 'success');
             };
 
-            socket.onmessage = (event) => {
+            socket.onmessage = async (event) => {
                 const data = JSON.parse(event.data);
-                handleMessage(data);
+                await handleMessage(data);
             };
 
             socket.onclose = () => {
-                showStatus('Disconnected', 'error');
-                setTimeout(initializeWebSocket, 5000);
+                console.log('Disconnected from relay server');
+                showNotification('Disconnected from server', 'error');
+                setTimeout(connectWebSocket, 5000);
+            };
+
+            socket.onerror = (error) => {
+                console.error('WebSocket error:', error);
             };
         }
 
-        function handleMessage(data) {
+        // Handle incoming messages
+        async function handleMessage(data) {
             switch (data.type) {
-                case 'message':
-                    addMessage(data);
+                case 'connected':
+                    console.log('Device registered:', data.deviceId);
                     break;
-                case 'user_list':
-                    updateUserList(data.users);
+
+                case 'connect_request':
+                    showConnectionRequest(data.fromDeviceId, data.publicKey);
                     break;
-                case 'room_list':
-                    updateRoomList(data.rooms);
+
+                case 'connect_accepted':
+                    await establishConnection(data.fromDeviceId, data.publicKey);
+                    showNotification('Connection established!', 'success');
+                    break;
+
+                case 'encrypted_message':
+                    await receiveEncryptedMessage(data);
+                    break;
+
+                case 'peer_disconnected':
+                    handlePeerDisconnected();
+                    break;
+
+                case 'error':
+                    showNotification(data.message, 'error');
                     break;
             }
         }
 
-        function addMessage(message) {
-            const messageEl = document.createElement('div');
-            messageEl.className = `message ${message.user === currentUser.username ? 'outgoing' : ''}`;
-            messageEl.innerHTML = `
-                <div class="message-header">
-                    <span class="username">${message.user}</span>
-                    <span class="time">${new Date(message.timestamp).toLocaleTimeString()}</span>
-                </div>
-                <div class="message-content">${message.content}</div>
-            `;
-            messages.appendChild(messageEl);
-            messages.scrollTop = messages.scrollHeight;
+        // Show connection request
+        function showConnectionRequest(fromDeviceId, publicKeyData) {
+            const requestDiv = document.createElement('div');
+            requestDiv.className = 'connection-request';
+            
+            // Create elements safely to prevent XSS
+            const requestHeader = document.createElement('div');
+            requestHeader.className = 'request-header';
+            requestHeader.textContent = 'Connection Request';
+            
+            const requestDevice = document.createElement('div');
+            requestDevice.className = 'request-device';
+            requestDevice.textContent = fromDeviceId;
+            
+            const requestActions = document.createElement('div');
+            requestActions.className = 'request-actions';
+            
+            const acceptBtn = document.createElement('button');
+            acceptBtn.className = 'btn';
+            acceptBtn.textContent = 'Accept';
+            acceptBtn.onclick = () => acceptConnection(fromDeviceId, publicKeyData);
+            
+            const rejectBtn = document.createElement('button');
+            rejectBtn.className = 'btn btn-danger';
+            rejectBtn.textContent = 'Reject';
+            rejectBtn.onclick = () => rejectConnection(fromDeviceId);
+            
+            requestActions.appendChild(acceptBtn);
+            requestActions.appendChild(rejectBtn);
+            
+            requestDiv.appendChild(requestHeader);
+            requestDiv.appendChild(requestDevice);
+            requestDiv.appendChild(requestActions);
+            
+            connectionRequestsContainer.appendChild(requestDiv);
+            showNotification('New connection request from ' + escapeHtml(fromDeviceId), 'info');
         }
 
-        function updateUserList(users) {
-            userList.innerHTML = users.map(user => `
-                <div class="user-item">
-                    <span class="user-status ${user.online ? 'online' : 'offline'}"></span>
-                    ${user.username}
-                </div>
-            `).join('');
-        }
-
-        function updateRoomList(rooms) {
-            roomList.innerHTML = rooms.map(room => `
-                <div class="room-item ${room === currentRoom ? 'active' : ''}" 
-                     onclick="joinRoom('${room}')">
-                    ${room}
-                </div>
-            `).join('');
-        }
-
-        function joinRoom(room) {
-            if (socket.readyState === WebSocket.OPEN) {
-                currentRoom = room;
-                socket.send(JSON.stringify({
-                    type: 'join_room',
-                    room: room
-                }));
-                updateRoomList(['general', 'random', room]);
+        // Connect to peer
+        async function connectToPeer() {
+            const targetId = targetDeviceIdInput.value.trim();
+            if (!targetId) {
+                showNotification('Please enter a device ID', 'error');
+                return;
             }
-        }
 
-        function showStatus(message, type) {
-            status.textContent = message;
-            status.className = `status show status-${type}`;
-            setTimeout(() => status.classList.remove('show'), 3000);
-        }
+            if (targetId === deviceId) {
+                showNotification('Cannot connect to yourself', 'error');
+                return;
+            }
 
-        // Event listeners
-        sendButton.addEventListener('click', () => {
-            const message = messageInput.value.trim();
-            if (!message) return;
+            // Export public key
+            const publicKey = await window.crypto.subtle.exportKey('raw', myKeyPair.publicKey);
+            const publicKeyArray = Array.from(new Uint8Array(publicKey));
 
             socket.send(JSON.stringify({
-                type: 'message',
-                content: message,
-                room: currentRoom,
+                type: 'connect_request',
+                targetDeviceId: targetId,
+                publicKey: publicKeyArray
+            }));
+
+            showNotification('Connection request sent', 'info');
+            targetDeviceIdInput.value = '';
+        }
+
+        // Accept connection
+        async function acceptConnection(fromDeviceId, publicKeyData) {
+            connectionRequestsContainer.innerHTML = '';
+
+            // Export our public key
+            const publicKey = await window.crypto.subtle.exportKey('raw', myKeyPair.publicKey);
+            const publicKeyArray = Array.from(new Uint8Array(publicKey));
+
+            socket.send(JSON.stringify({
+                type: 'connect_accept',
+                targetDeviceId: fromDeviceId,
+                publicKey: publicKeyArray
+            }));
+
+            await establishConnection(fromDeviceId, publicKeyData);
+        }
+
+        // Reject connection
+        function rejectConnection(fromDeviceId) {
+            connectionRequestsContainer.innerHTML = '';
+            showNotification('Connection rejected', 'info');
+        }
+
+        // Establish secure connection
+        async function establishConnection(peerDeviceId, peerPublicKeyData) {
+            connectedPeer = peerDeviceId;
+
+            // Import peer's public key
+            const peerPublicKeyArray = typeof peerPublicKeyData === 'string' 
+                ? JSON.parse(peerPublicKeyData) 
+                : peerPublicKeyData;
+            
+            const peerPublicKey = await window.crypto.subtle.importKey(
+                'raw',
+                new Uint8Array(peerPublicKeyArray),
+                {
+                    name: "ECDH",
+                    namedCurve: "P-384"
+                },
+                false,
+                []
+            );
+
+            // Derive shared encryption key
+            const sharedSecret = await window.crypto.subtle.deriveKey(
+                {
+                    name: "ECDH",
+                    public: peerPublicKey
+                },
+                myKeyPair.privateKey,
+                {
+                    name: "AES-GCM",
+                    length: 256
+                },
+                false,
+                ["encrypt", "decrypt"]
+            );
+
+            encryptionKey = sharedSecret;
+
+            // Update UI
+            updateConnectionUI(true);
+            clearMessages();
+        }
+
+        // Send encrypted message
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || !connectedPeer || !encryptionKey) return;
+
+            // Encrypt message
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const encoder = new TextEncoder();
+            const encodedMessage = encoder.encode(message);
+
+            const encryptedContent = await window.crypto.subtle.encrypt(
+                {
+                    name: "AES-GCM",
+                    iv: iv
+                },
+                encryptionKey,
+                encodedMessage
+            );
+
+            // Convert to arrays for transmission
+            const encryptedArray = Array.from(new Uint8Array(encryptedContent));
+            const ivArray = Array.from(iv);
+
+            // Send to peer
+            socket.send(JSON.stringify({
+                type: 'encrypted_message',
+                targetDeviceId: connectedPeer,
+                encryptedContent: encryptedArray,
+                iv: ivArray,
                 timestamp: Date.now()
             }));
 
+            // Display sent message
+            addMessage(message, true);
             messageInput.value = '';
+        }
+
+        // Receive encrypted message
+        async function receiveEncryptedMessage(data) {
+            if (!encryptionKey) return;
+
+            try {
+                // Decrypt message
+                const encryptedArray = new Uint8Array(data.encryptedContent);
+                const ivArray = new Uint8Array(data.iv);
+
+                const decryptedContent = await window.crypto.subtle.decrypt(
+                    {
+                        name: "AES-GCM",
+                        iv: ivArray
+                    },
+                    encryptionKey,
+                    encryptedArray
+                );
+
+                const decoder = new TextDecoder();
+                const message = decoder.decode(decryptedContent);
+
+                // Display received message
+                addMessage(message, false);
+            } catch (error) {
+                console.error('Decryption error:', error);
+                showNotification('Failed to decrypt message', 'error');
+            }
+        }
+
+        // Add message to chat
+        function addMessage(text, isSent) {
+            // Remove empty state if present
+            const emptyState = messagesContainer.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (isSent ? 'sent' : 'received');
+            
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${isSent ? '👤' : '👥'}</div>
+                <div class="message-content">
+                    <div class="message-text">${escapeHtml(text)}</div>
+                    <div class="message-time">${timeStr}</div>
+                </div>
+            `;
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Clear messages
+        function clearMessages() {
+            messagesContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔒</div>
+                    <div class="empty-state-text">
+                        End-to-end encrypted chat established<br>
+                        Messages are only visible to you and your peer
+                    </div>
+                </div>
+            `;
+        }
+
+        // Disconnect from peer
+        function disconnectPeer() {
+            if (!connectedPeer) return;
+
+            socket.send(JSON.stringify({
+                type: 'disconnect_peer'
+            }));
+
+            handlePeerDisconnected();
+        }
+
+        // Handle peer disconnection
+        function handlePeerDisconnected() {
+            connectedPeer = null;
+            encryptionKey = null;
+            updateConnectionUI(false);
+            showNotification('Peer disconnected', 'info');
+            
+            messagesContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">💬</div>
+                    <div class="empty-state-text">
+                        Connect to another device to start chatting securely
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update connection UI
+        function updateConnectionUI(isConnected) {
+            if (isConnected) {
+                connectionStatus.textContent = 'Connected';
+                connectionStatus.className = 'status-value connected';
+                connectedPeerDisplay.textContent = connectedPeer;
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+                disconnectBtn.disabled = false;
+                connectBtn.disabled = true;
+                targetDeviceIdInput.disabled = true;
+            } else {
+                connectionStatus.textContent = 'Disconnected';
+                connectionStatus.className = 'status-value disconnected';
+                connectedPeerDisplay.textContent = 'None';
+                messageInput.disabled = true;
+                sendBtn.disabled = true;
+                disconnectBtn.disabled = true;
+                connectBtn.disabled = false;
+                targetDeviceIdInput.disabled = false;
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notificationsContainer.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideInRight 0.3s ease-out reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Escape HTML for XSS protection
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Event listeners
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(deviceId);
+            showNotification('Device ID copied to clipboard', 'success');
         });
+
+        connectBtn.addEventListener('click', connectToPeer);
+
+        targetDeviceIdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') connectToPeer();
+        });
+
+        disconnectBtn.addEventListener('click', disconnectPeer);
+
+        sendBtn.addEventListener('click', sendMessage);
 
         messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendButton.click();
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
         });
 
-        function setupThemeToggle() {
-            themeToggle.addEventListener('click', () => {
-                darkMode = !darkMode;
-                document.body.classList.toggle('light-mode');
-                themeToggle.textContent = darkMode ? '☀️' : '🌙';
-                localStorage.setItem('darkMode', darkMode);
-            });
-        }
-
-
-        // Initialize theme
-        if (darkMode) {
-            document.body.classList.add('dark-mode');
-            themeToggle.textContent = '🌙';
-        }
-
-        // Restore username if available
-        const savedUsername = localStorage.getItem('username');
-        if (savedUsername) {
-            usernameInput.value = savedUsername;
-        }
-
-        // Initialize the chat application on page load
-        window.onload = async () => {
-            setupThemeToggle();
-            //await initChat(); //Commented out as there is no initChat function defined.  Presumably this was intended to be integrated with the server-side code.
-        };
+        // Initialize app
+        init();
     </script>
 </body>
 </html>
