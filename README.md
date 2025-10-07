@@ -1,35 +1,34 @@
-# Dark Mode Chat Room
+# Encrypted P2P Chat
 
-A real-time chat application with dark mode support built using WebSocket, HTML, CSS, and JavaScript.
+A secure peer-to-peer chat application with end-to-end encryption built using WebSocket, Web Crypto API, and modern web technologies.
 
 ## Features
 
-- 🌓 Dark/Light theme toggle with persistence
-- 💬 Real-time messaging with encryption
-- 🔐 Secure WebSocket connection
-- 👥 User presence indicators
-- 🏠 Multiple chat rooms with dynamic creation
-- 📱 Responsive design for mobile devices
-- 🔄 Automatic reconnection with retry limits
-- 🔒 Message encryption using Caesar cipher
-- 💾 Message persistence using Supabase
-- ⚡ Zero dependencies (client-side)
-- 🎨 Modern UI with CSS variables
-- 🔔 Connection status notifications
+- 🔒 **End-to-End Encryption** - Messages encrypted using AES-GCM with ECDH key exchange
+- 🆔 **Unique Device IDs** - Each device gets a persistent unique identifier
+- 🔗 **Direct P2P Connection** - Connect directly to another device using their ID
+- 🌑 **Google Material Dark Mode** - Modern, clean dark theme UI
+- 📱 **Responsive Design** - Works seamlessly on desktop and mobile
+- 🔄 **Automatic Reconnection** - Maintains connection reliability
+- 🛡️ **Privacy First** - No message storage, complete privacy
+- ⚡ **Zero External Dependencies** - Pure client-side encryption
+- 🎨 **Material Design** - Google-style modern interface
+- 🔔 **Real-time Notifications** - Connection and message alerts
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (>= 14.0.0)
-- npm (>= 6.0.0)
+- Node.js (>= 16.0.0)
+- npm (>= 8.0.0)
+- Modern web browser with Web Crypto API support
 
 ### Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/username/dark-mode-chat-room.git
-cd dark-mode-chat-room
+git clone https://github.com/RyAnPr1Me/chat.git
+cd chat
 ```
 
 2. Install dependencies:
@@ -37,9 +36,9 @@ cd dark-mode-chat-room
 npm install
 ```
 
-3. Start the development server:
+3. Start the server:
 ```bash
-npm run dev
+npm start
 ```
 
 4. Open your browser and navigate to:
@@ -47,148 +46,131 @@ npm run dev
 http://localhost:3000
 ```
 
+5. Share your Device ID with someone or get their Device ID to connect
+
 ## Project Structure
 
 ```
-dark-mode-chat-room/
-├── index.html       # Main application file
-├── styles/
-│   └── main.css    # Styling
+encrypted-p2p-chat/
+├── index.html       # Main application with embedded styles and scripts
+├── api/
+│   └── server.js   # WebSocket relay server
 ├── package.json    # Project configuration
-└── README.md      # Documentation
+└── README.md       # Documentation
 ```
 
 ## Usage
 
-1. Enter your username when prompted
-2. Join existing rooms or create new ones
-3. Send messages using the input field
-4. Toggle theme using the theme button (☀️/🌙)
+1. **Get Your Device ID**: When you open the app, a unique Device ID is automatically generated and displayed in the header
+2. **Copy Your ID**: Click the "Copy" button to copy your Device ID
+3. **Share Your ID**: Send your Device ID to someone you want to chat with securely
+4. **Connect**: Enter their Device ID in the "Connect to Device" field and click "Connect"
+5. **Accept Connection**: They will receive a connection request - once accepted, you're connected!
+6. **Chat Securely**: All messages are end-to-end encrypted - only you and your peer can read them
 
 ## Features in Detail
 
-### Chat Security
-- Message encryption using Caesar cipher algorithm
-- Input sanitization for XSS prevention
-- Rate limiting and message length restrictions
-- Secure WebSocket connection with auto-reconnect
-- Message validation and sanitization
+### Security & Encryption
+- **End-to-End Encryption**: Uses AES-GCM (256-bit) for message encryption
+- **Key Exchange**: ECDH (P-384 curve) for secure key derivation
+- **No Storage**: Messages are never stored on the server - complete privacy
+- **Unique Keys**: Each peer connection has a unique encryption key
+- **XSS Protection**: Input sanitization and secure HTML rendering
+- **Rate Limiting**: Server-side protection against abuse
 
-### Real-time Features
-- Instant messaging with WebSocket
-- User presence indicators
-- Connection status updates
-- Automatic reconnection with configurable retries
-- Real-time room updates
-- Message persistence across sessions
+### Device Management
+- **Persistent Device ID**: Automatically generated and stored in browser
+- **No Registration**: No accounts or personal information required
+- **Copy & Share**: Easy Device ID copying to clipboard
+- **Connection Requests**: Accept or reject incoming connections
+- **Single Connection**: One secure connection at a time per device
 
-### Chat Rooms
-- Create custom rooms dynamically
-- Join existing rooms in real-time
-- See active users in each room
-- Real-time updates when users join/leave
-- Default rooms: general, random, support
-- Room-specific message history
+### Real-time Communication
+- **WebSocket Relay**: Server relays encrypted messages between peers
+- **Instant Delivery**: Real-time message transmission
+- **Connection Status**: Live connection state indicators
+- **Automatic Reconnect**: Maintains connection reliability
+- **Peer Notifications**: Get notified when peer disconnects
 
-### Data Persistence
-- Messages stored in Supabase database
-- Room persistence across sessions
-- Theme preference storage
-- Message history retrieval
-- Real-time database synchronization
+### User Interface
+- **Material Design**: Google-style dark theme
+- **Responsive Layout**: Adapts to all screen sizes
+- **Modern Animations**: Smooth transitions and effects
+- **Status Indicators**: Visual feedback for all actions
+- **Toast Notifications**: Non-intrusive status messages
+- **Clean Typography**: Readable and accessible text
 
-### Theme System
-- Dark/Light mode support
-- Theme persistence across sessions
-- CSS variable-based theming
-- Smooth theme transitions
-- System theme detection
-- Custom color schemes
+## How It Works
 
-### UI Features
-- Responsive mobile-first design
-- Modern messaging interface
-- User avatars and status indicators
-- Message timestamps
-- Typing indicators
-- Scroll-to-bottom on new messages
+### Architecture
+```
+Device A                    Relay Server                    Device B
+   |                             |                              |
+   |-- Connect with DeviceID --->|                              |
+   |                             |<--- Connect with DeviceID ---|
+   |                             |                              |
+   |-- Connection Request ------>|                              |
+   |                             |---- Forward Request -------->|
+   |                             |                              |
+   |                             |<---- Accept + Public Key ----|
+   |<--- Public Key + Accept ----|                              |
+   |                             |                              |
+   [Derive Shared Key]           |                   [Derive Shared Key]
+   |                             |                              |
+   |-- Encrypted Message ------->|                              |
+   |                             |---- Forward Encrypted ------>|
+   |                             |                              |
+```
+
+### Encryption Process
+1. Each device generates an ECDH key pair on startup
+2. When connecting, devices exchange public keys through the server
+3. Both devices derive the same AES-GCM encryption key using ECDH
+4. Messages are encrypted locally before transmission
+5. Server only relays encrypted messages without decrypting
+6. Only the intended peer can decrypt the messages
 
 ## Browser Support
 
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
+- Chrome 60+ (recommended)
+- Firefox 75+
+- Safari 11.1+
+- Edge 79+
+
+**Note:** Web Crypto API support required for encryption features
+
+## Security Considerations
+
+- ✅ End-to-end encryption using Web Crypto API
+- ✅ No message storage on server
+- ✅ Unique encryption key per connection
+- ✅ XSS protection with input sanitization
+- ✅ Rate limiting on server
+- ⚠️ Server can see Device IDs (not message content)
+- ⚠️ No authentication - anyone with Device ID can connect
+- ⚠️ Single connection limit per device
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch:
-```bash
-git checkout -b feature/YourFeature
-```
-3. Commit your changes:
-```bash
-git commit -m 'Add some feature'
-```
-4. Push to the branch:
-```bash
-git push origin feature/YourFeature
-```
-5. Open a Pull Request
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Security
-
-- Input sanitization
-- XSS protection
-- Secure WebSocket connection
-- Rate limiting
-- Message length restrictions
-
-## Known Issues
-
-- Reconnection might fail in areas with poor network connectivity
-- Some emoji may not display correctly in older browsers
-- Theme toggle animation may lag on lower-end devices
+This project is licensed under the MIT License.
 
 ## Roadmap
 
-- [ ] Add file sharing support
-- [ ] Implement user authentication
-- [ ] Add message history
-- [ ] Support for message formatting
-- [ ] Add voice messages
-- [ ] Implement private messaging
+- [ ] Group chat support (3+ participants)
+- [ ] File sharing with encryption
+- [ ] Voice/Video call support
+- [ ] Message formatting (markdown)
+- [ ] QR code for Device ID sharing
+- [ ] Mobile app versions
 
-## Support
+## Technical Stack
 
-For support, please open an issue in the GitHub repository or contact the maintainers.
-
-## Technical Details
-
-### Configuration
-- Maximum message length: 1000 characters
-- Maximum reconnection attempts: 3
-- Reconnection delay: 2000ms
-- Connection timeout: 5000ms
-- Username requirements: 3-20 alphanumeric characters
-- Room name requirements: 3-30 alphanumeric characters
-
-### WebSocket Events
-- message: Handle incoming chat messages
-- user_list: Update online users
-- room_list: Update available rooms
-- join_room: Handle room transitions
-- create_room: Handle new room creation
-
-### Error Handling
-- Connection failure recovery
-- Message validation
-- Input sanitization
-- Encrypted message handling
-- Database error handling
-- WebSocket error recovery
+- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
+- **Encryption**: Web Crypto API (AES-GCM, ECDH)
+- **Backend**: Node.js, Express, WebSocket (ws)
+- **Styling**: CSS Variables, Material Design principles
+- **Storage**: LocalStorage for Device ID persistence
