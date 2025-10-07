@@ -665,16 +665,38 @@
         function showConnectionRequest(fromDeviceId, publicKeyData) {
             const requestDiv = document.createElement('div');
             requestDiv.className = 'connection-request';
-            requestDiv.innerHTML = `
-                <div class="request-header">Connection Request</div>
-                <div class="request-device">${fromDeviceId}</div>
-                <div class="request-actions">
-                    <button class="btn" onclick="acceptConnection('${fromDeviceId}', '${JSON.stringify(publicKeyData)}')">Accept</button>
-                    <button class="btn btn-danger" onclick="rejectConnection('${fromDeviceId}')">Reject</button>
-                </div>
-            `;
+            
+            // Create elements safely to prevent XSS
+            const requestHeader = document.createElement('div');
+            requestHeader.className = 'request-header';
+            requestHeader.textContent = 'Connection Request';
+            
+            const requestDevice = document.createElement('div');
+            requestDevice.className = 'request-device';
+            requestDevice.textContent = fromDeviceId;
+            
+            const requestActions = document.createElement('div');
+            requestActions.className = 'request-actions';
+            
+            const acceptBtn = document.createElement('button');
+            acceptBtn.className = 'btn';
+            acceptBtn.textContent = 'Accept';
+            acceptBtn.onclick = () => acceptConnection(fromDeviceId, publicKeyData);
+            
+            const rejectBtn = document.createElement('button');
+            rejectBtn.className = 'btn btn-danger';
+            rejectBtn.textContent = 'Reject';
+            rejectBtn.onclick = () => rejectConnection(fromDeviceId);
+            
+            requestActions.appendChild(acceptBtn);
+            requestActions.appendChild(rejectBtn);
+            
+            requestDiv.appendChild(requestHeader);
+            requestDiv.appendChild(requestDevice);
+            requestDiv.appendChild(requestActions);
+            
             connectionRequestsContainer.appendChild(requestDiv);
-            showNotification('New connection request from ' + fromDeviceId, 'info');
+            showNotification('New connection request from ' + escapeHtml(fromDeviceId), 'info');
         }
 
         // Connect to peer
