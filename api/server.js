@@ -77,11 +77,27 @@ wss.on('connection', (ws, req) => {
       return;
     }
 
+    // Check for duplicate device ID
+    if (devices.has(deviceId)) {
+      const existingDevice = devices.get(deviceId);
+      if (existingDevice.ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'error',
+          message: 'Device ID already connected. Please refresh the page.'
+        }));
+        ws.close();
+        return;
+      } else {
+        // Clean up stale connection
+        devices.delete(deviceId);
+      }
+    }
+
     // Register device
     ws.deviceId = deviceId;
     devices.set(deviceId, { ws, deviceId, connectedTo: null });
 
-    console.log(`Device ${deviceId} connected`);
+    console.log(`Device ${deviceId} connected (Total: ${devices.size})`);
 
     // Heartbeat mechanism
     heartbeatInterval = setInterval(() => {
@@ -113,7 +129,22 @@ wss.on('connection', (ws, req) => {
         switch (data.type) {
         case 'connect_request': {
           // Request to connect to another device
-          if (!data.targetDeviceId) return;
+          if (!data.targetDeviceId || !data.publicKey) {
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Invalid connection request'
+            }));
+            return;
+          }
+
+          // Prevent self-connection
+          if (data.targetDeviceId === deviceId) {
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Cannot connect to yourself'
+            }));
+            return;
+          }
 
           const targetDevice = devices.get(data.targetDeviceId);
           if (targetDevice && targetDevice.ws.readyState === WebSocket.OPEN) {
@@ -154,7 +185,22 @@ wss.on('connection', (ws, req) => {
 
         case 'encrypted_message': {
           // Relay encrypted message to connected peer
-          if (!data.targetDeviceId || !data.encryptedContent) return;
+          if (!data.targetDeviceId || !data.encryptedContent || !data.iv) {
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Invalid message format'
+            }));
+            return;
+          }
+
+          // Validate message size (prevent DoS)
+          if (data.encryptedContent.length > 100000) {
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Message too large'
+            }));
+            return;
+          }
 
           const peerDevice = devices.get(data.targetDeviceId);
           if (peerDevice && peerDevice.ws.readyState === WebSocket.OPEN) {
@@ -229,7 +275,7 @@ wss.on('connection', (ws, req) => {
       }
 
       devices.delete(deviceId);
-      console.log(`Device ${deviceId} disconnected`);
+      console.log(`Device ${deviceId} disconnected (Total: ${devices.size})`);
     });
 
   } catch (error) {

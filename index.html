@@ -664,6 +664,7 @@
                         disabled
                         aria-label="Message input"
                         autocomplete="off"
+                        maxlength="1000"
                     >
                     <button class="send-btn" id="sendBtn" disabled aria-label="Send message">➤</button>
                 </div>
@@ -963,6 +964,12 @@
             const message = messageInput.value.trim();
             if (!message || !connectedPeer || !encryptionKey) return;
 
+            // Validate message length
+            if (message.length > 1000) {
+                showNotification('Message too long (max 1000 characters)', 'error');
+                return;
+            }
+
             if (!socket || socket.readyState !== WebSocket.OPEN) {
                 showNotification('Not connected to server', 'error');
                 return;
@@ -1126,6 +1133,8 @@
                 disconnectBtn.disabled = false;
                 connectBtn.disabled = true;
                 targetDeviceIdInput.disabled = true;
+                // Focus on message input when connected
+                setTimeout(() => messageInput.focus(), 100);
             } else {
                 connectionStatus.textContent = 'Disconnected';
                 connectionStatus.className = 'status-value disconnected';
@@ -1135,6 +1144,8 @@
                 disconnectBtn.disabled = true;
                 connectBtn.disabled = false;
                 targetDeviceIdInput.disabled = false;
+                // Focus on device ID input when disconnected
+                setTimeout(() => targetDeviceIdInput.focus(), 100);
             }
         }
 
@@ -1158,10 +1169,33 @@
             return div.innerHTML;
         }
 
+        // Sanitize input to prevent injection attacks
+        function sanitizeInput(input) {
+            return input.trim().replace(/[<>]/g, '');
+        }
+
         // Event listeners
-        copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(deviceId);
-            showNotification('Device ID copied to clipboard', 'success');
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(deviceId);
+                showNotification('Device ID copied to clipboard', 'success');
+            } catch (error) {
+                console.error('Failed to copy:', error);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = deviceId;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showNotification('Device ID copied to clipboard', 'success');
+                } catch (err) {
+                    showNotification('Failed to copy Device ID', 'error');
+                }
+                document.body.removeChild(textArea);
+            }
         });
 
         connectBtn.addEventListener('click', connectToPeer);
@@ -1223,6 +1257,18 @@
                 existingIndicator.remove();
             }
         }
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Escape key to reject connection requests
+            if (e.key === 'Escape') {
+                const requests = connectionRequestsContainer.querySelectorAll('.connection-request');
+                if (requests.length > 0) {
+                    connectionRequestsContainer.innerHTML = '';
+                    showNotification('Connection request dismissed', 'info');
+                }
+            }
+        });
 
         // Initialize app
         init();
