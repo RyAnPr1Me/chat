@@ -187,6 +187,20 @@ wss.on('connection', (ws, req) => {
           }
           break;
         }
+
+        case 'typing_indicator': {
+          // Forward typing indicator to connected peer
+          if (!data.targetDeviceId) return;
+
+          const targetPeer = devices.get(data.targetDeviceId);
+          if (targetPeer && targetPeer.ws.readyState === WebSocket.OPEN) {
+            targetPeer.ws.send(JSON.stringify({
+              type: 'typing_indicator',
+              isTyping: data.isTyping
+            }));
+          }
+          break;
+        }
         }
       } catch (error) {
         console.error('Message handling error:', error);
