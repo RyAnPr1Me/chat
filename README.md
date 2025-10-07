@@ -9,11 +9,15 @@ A secure peer-to-peer chat application with end-to-end encryption built using We
 - 🔗 **Direct P2P Connection** - Connect directly to another device using their ID
 - 🌑 **Google Material Dark Mode** - Modern, clean dark theme UI
 - 📱 **Responsive Design** - Works seamlessly on desktop and mobile
-- 🔄 **Automatic Reconnection** - Maintains connection reliability
+- 🔄 **Automatic Reconnection** - Smart reconnection with exponential backoff
 - 🛡️ **Privacy First** - No message storage, complete privacy
 - ⚡ **Zero External Dependencies** - Pure client-side encryption
 - 🎨 **Material Design** - Google-style modern interface
 - 🔔 **Real-time Notifications** - Connection and message alerts
+- ⌨️ **Typing Indicators** - See when your peer is typing
+- 🚦 **Rate Limiting** - Client and server-side protection against spam
+- ♿ **Accessibility** - ARIA labels and keyboard shortcuts
+- 🔐 **Input Validation** - Comprehensive validation on both client and server
 
 ## Getting Started
 
@@ -67,6 +71,12 @@ encrypted-p2p-chat/
 4. **Connect**: Enter their Device ID in the "Connect to Device" field and click "Connect"
 5. **Accept Connection**: They will receive a connection request - once accepted, you're connected!
 6. **Chat Securely**: All messages are end-to-end encrypted - only you and your peer can read them
+
+### Keyboard Shortcuts
+
+- **Enter**: Send message (when typing in message input)
+- **Enter**: Connect to device (when typing in device ID input)
+- **Escape**: Dismiss connection requests
 
 ## Features in Detail
 
@@ -141,14 +151,23 @@ Device A                    Relay Server                    Device B
 
 ## Security Considerations
 
-- ✅ End-to-end encryption using Web Crypto API
+### Protections in Place
+- ✅ End-to-end encryption using Web Crypto API (AES-GCM 256-bit)
+- ✅ Secure key exchange using ECDH (P-384 curve)
 - ✅ No message storage on server
 - ✅ Unique encryption key per connection
 - ✅ XSS protection with input sanitization
-- ✅ Rate limiting on server
+- ✅ Rate limiting on both client and server
+- ✅ Message size validation to prevent DoS
+- ✅ Duplicate device ID detection
+- ✅ Input validation on all user inputs
+- ✅ WebSocket heartbeat mechanism for connection health
+
+### Important Notes
 - ⚠️ Server can see Device IDs (not message content)
 - ⚠️ No authentication - anyone with Device ID can connect
 - ⚠️ Single connection limit per device
+- ⚠️ Messages are not persisted - close the tab and they're gone
 
 ## Contributing
 

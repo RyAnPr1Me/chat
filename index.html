@@ -105,8 +105,17 @@
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: var(--success);
+            background: var(--error);
             animation: pulse 2s infinite;
+            transition: background 0.3s ease;
+        }
+
+        .status-indicator.connected {
+            background: var(--success);
+        }
+
+        .status-indicator.reconnecting {
+            background: var(--warning);
         }
 
         @keyframes pulse {
@@ -467,17 +476,124 @@
             background: var(--border);
         }
 
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--text-secondary);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        .typing-indicator .dots {
+            display: inline-flex;
+            gap: 2px;
+        }
+
+        .typing-indicator .dots span {
+            animation: blink 1.4s infinite;
+        }
+
+        .typing-indicator .dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator .dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+            0%, 60%, 100% {
+                opacity: 0.3;
+            }
+            30% {
+                opacity: 1;
+            }
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 grid-template-columns: 1fr;
             }
-            
+
             .sidebar {
-                display: none;
+                position: fixed;
+                left: 0;
+                top: 60px;
+                bottom: 0;
+                width: 280px;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 100;
+                box-shadow: 2px 0 8px var(--shadow);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .header {
+                flex-wrap: wrap;
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .device-id {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+
+            .device-id strong {
+                max-width: 120px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
 
             .message {
                 max-width: 85%;
+                font-size: 14px;
+            }
+
+            .message-time {
+                font-size: 10px;
+            }
+
+            .input-area input {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1::before {
+                display: none;
+            }
+
+            .copy-btn {
+                padding: 4px 8px;
+                font-size: 11px;
             }
         }
     </style>
@@ -503,13 +619,15 @@
                 <div class="connection-card">
                     <h3>Connect to Device</h3>
                     <div class="input-group">
-                        <input 
-                            type="text" 
-                            id="targetDeviceId" 
+                        <input
+                            type="text"
+                            id="targetDeviceId"
                             placeholder="Enter Device ID"
                             maxlength="50"
+                            aria-label="Target Device ID"
+                            autocomplete="off"
                         >
-                        <button class="btn" id="connectBtn">Connect</button>
+                        <button class="btn" id="connectBtn" aria-label="Connect to device">Connect</button>
                     </div>
                 </div>
 
@@ -539,13 +657,16 @@
                 </div>
 
                 <div class="input-area">
-                    <input 
-                        type="text" 
-                        id="messageInput" 
+                    <input
+                        type="text"
+                        id="messageInput"
                         placeholder="Type an encrypted message..."
                         disabled
+                        aria-label="Message input"
+                        autocomplete="off"
+                        maxlength="1000"
                     >
-                    <button class="send-btn" id="sendBtn" disabled>➤</button>
+                    <button class="send-btn" id="sendBtn" disabled aria-label="Send message">➤</button>
                 </div>
             </div>
         </div>
@@ -560,6 +681,13 @@
         let connectedPeer = null;
         let encryptionKey = null;
         let myKeyPair = null;
+        let isReconnecting = false;
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
+        let typingTimeout = null;
+        let isTyping = false;
+        let lastMessageTime = 0;
+        const MESSAGE_RATE_LIMIT = 100; // milliseconds between messages
 
         // DOM Elements
         const deviceIdDisplay = document.getElementById('deviceIdDisplay');
@@ -574,6 +702,7 @@
         const connectedPeerDisplay = document.getElementById('connectedPeer');
         const connectionRequestsContainer = document.getElementById('connectionRequests');
         const notificationsContainer = document.getElementById('notifications');
+        const statusIndicator = document.getElementById('statusIndicator');
 
         // Generate or retrieve device ID
         function getDeviceId() {
@@ -612,18 +741,38 @@
 
             socket.onopen = () => {
                 console.log('Connected to relay server');
+                reconnectAttempts = 0;
+                isReconnecting = false;
+                statusIndicator.className = 'status-indicator connected';
                 showNotification('Connected to server', 'success');
             };
 
             socket.onmessage = async (event) => {
-                const data = JSON.parse(event.data);
-                await handleMessage(data);
+                try {
+                    const data = JSON.parse(event.data);
+                    await handleMessage(data);
+                } catch (error) {
+                    console.error('Error parsing message:', error);
+                    showNotification('Received invalid message', 'error');
+                }
             };
 
             socket.onclose = () => {
                 console.log('Disconnected from relay server');
-                showNotification('Disconnected from server', 'error');
-                setTimeout(connectWebSocket, 5000);
+                statusIndicator.className = 'status-indicator';
+
+                if (!isReconnecting && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                    isReconnecting = true;
+                    reconnectAttempts++;
+                    statusIndicator.className = 'status-indicator reconnecting';
+                    showNotification(`Reconnecting to server... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`, 'info');
+                    setTimeout(() => {
+                        isReconnecting = false;
+                        connectWebSocket();
+                    }, Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 30000));
+                } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                    showNotification('Failed to connect to server. Please refresh the page.', 'error');
+                }
             };
 
             socket.onerror = (error) => {
@@ -653,6 +802,10 @@
 
                 case 'peer_disconnected':
                     handlePeerDisconnected();
+                    break;
+
+                case 'typing_indicator':
+                    showTypingIndicator(data.isTyping);
                     break;
 
                 case 'error':
@@ -712,18 +865,33 @@
                 return;
             }
 
-            // Export public key
-            const publicKey = await window.crypto.subtle.exportKey('raw', myKeyPair.publicKey);
-            const publicKeyArray = Array.from(new Uint8Array(publicKey));
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                showNotification('Not connected to server', 'error');
+                return;
+            }
 
-            socket.send(JSON.stringify({
-                type: 'connect_request',
-                targetDeviceId: targetId,
-                publicKey: publicKeyArray
-            }));
+            if (connectedPeer) {
+                showNotification('Already connected to a peer. Disconnect first.', 'error');
+                return;
+            }
 
-            showNotification('Connection request sent', 'info');
-            targetDeviceIdInput.value = '';
+            try {
+                // Export public key
+                const publicKey = await window.crypto.subtle.exportKey('raw', myKeyPair.publicKey);
+                const publicKeyArray = Array.from(new Uint8Array(publicKey));
+
+                socket.send(JSON.stringify({
+                    type: 'connect_request',
+                    targetDeviceId: targetId,
+                    publicKey: publicKeyArray
+                }));
+
+                showNotification('Connection request sent', 'info');
+                targetDeviceIdInput.value = '';
+            } catch (error) {
+                console.error('Error connecting to peer:', error);
+                showNotification('Failed to send connection request', 'error');
+            }
         }
 
         // Accept connection
@@ -796,36 +964,60 @@
             const message = messageInput.value.trim();
             if (!message || !connectedPeer || !encryptionKey) return;
 
-            // Encrypt message
-            const iv = window.crypto.getRandomValues(new Uint8Array(12));
-            const encoder = new TextEncoder();
-            const encodedMessage = encoder.encode(message);
+            // Validate message length
+            if (message.length > 1000) {
+                showNotification('Message too long (max 1000 characters)', 'error');
+                return;
+            }
 
-            const encryptedContent = await window.crypto.subtle.encrypt(
-                {
-                    name: "AES-GCM",
-                    iv: iv
-                },
-                encryptionKey,
-                encodedMessage
-            );
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                showNotification('Not connected to server', 'error');
+                return;
+            }
 
-            // Convert to arrays for transmission
-            const encryptedArray = Array.from(new Uint8Array(encryptedContent));
-            const ivArray = Array.from(iv);
+            // Rate limiting
+            const now = Date.now();
+            if (now - lastMessageTime < MESSAGE_RATE_LIMIT) {
+                showNotification('Sending too fast. Please wait.', 'error');
+                return;
+            }
+            lastMessageTime = now;
 
-            // Send to peer
-            socket.send(JSON.stringify({
-                type: 'encrypted_message',
-                targetDeviceId: connectedPeer,
-                encryptedContent: encryptedArray,
-                iv: ivArray,
-                timestamp: Date.now()
-            }));
+            try {
+                // Encrypt message
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                const encoder = new TextEncoder();
+                const encodedMessage = encoder.encode(message);
 
-            // Display sent message
-            addMessage(message, true);
-            messageInput.value = '';
+                const encryptedContent = await window.crypto.subtle.encrypt(
+                    {
+                        name: "AES-GCM",
+                        iv: iv
+                    },
+                    encryptionKey,
+                    encodedMessage
+                );
+
+                // Convert to arrays for transmission
+                const encryptedArray = Array.from(new Uint8Array(encryptedContent));
+                const ivArray = Array.from(iv);
+
+                // Send to peer
+                socket.send(JSON.stringify({
+                    type: 'encrypted_message',
+                    targetDeviceId: connectedPeer,
+                    encryptedContent: encryptedArray,
+                    iv: ivArray,
+                    timestamp: Date.now()
+                }));
+
+                // Display sent message
+                addMessage(message, true);
+                messageInput.value = '';
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showNotification('Failed to send message', 'error');
+            }
         }
 
         // Receive encrypted message
@@ -900,9 +1092,15 @@
         function disconnectPeer() {
             if (!connectedPeer) return;
 
-            socket.send(JSON.stringify({
-                type: 'disconnect_peer'
-            }));
+            try {
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'disconnect_peer'
+                    }));
+                }
+            } catch (error) {
+                console.error('Error disconnecting:', error);
+            }
 
             handlePeerDisconnected();
         }
@@ -935,6 +1133,8 @@
                 disconnectBtn.disabled = false;
                 connectBtn.disabled = true;
                 targetDeviceIdInput.disabled = true;
+                // Focus on message input when connected
+                setTimeout(() => messageInput.focus(), 100);
             } else {
                 connectionStatus.textContent = 'Disconnected';
                 connectionStatus.className = 'status-value disconnected';
@@ -944,6 +1144,8 @@
                 disconnectBtn.disabled = true;
                 connectBtn.disabled = false;
                 targetDeviceIdInput.disabled = false;
+                // Focus on device ID input when disconnected
+                setTimeout(() => targetDeviceIdInput.focus(), 100);
             }
         }
 
@@ -967,10 +1169,33 @@
             return div.innerHTML;
         }
 
+        // Sanitize input to prevent injection attacks
+        function sanitizeInput(input) {
+            return input.trim().replace(/[<>]/g, '');
+        }
+
         // Event listeners
-        copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(deviceId);
-            showNotification('Device ID copied to clipboard', 'success');
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(deviceId);
+                showNotification('Device ID copied to clipboard', 'success');
+            } catch (error) {
+                console.error('Failed to copy:', error);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = deviceId;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showNotification('Device ID copied to clipboard', 'success');
+                } catch (err) {
+                    showNotification('Failed to copy Device ID', 'error');
+                }
+                document.body.removeChild(textArea);
+            }
         });
 
         connectBtn.addEventListener('click', connectToPeer);
@@ -987,6 +1212,61 @@
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
+            }
+        });
+
+        messageInput.addEventListener('input', () => {
+            handleTyping();
+        });
+
+        // Handle typing indicator
+        function handleTyping() {
+            if (!connectedPeer || !socket || socket.readyState !== WebSocket.OPEN) return;
+
+            if (!isTyping) {
+                isTyping = true;
+                socket.send(JSON.stringify({
+                    type: 'typing_indicator',
+                    targetDeviceId: connectedPeer,
+                    isTyping: true
+                }));
+            }
+
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                isTyping = false;
+                socket.send(JSON.stringify({
+                    type: 'typing_indicator',
+                    targetDeviceId: connectedPeer,
+                    isTyping: false
+                }));
+            }, 1000);
+        }
+
+        // Show typing indicator
+        function showTypingIndicator(typing) {
+            const existingIndicator = messagesContainer.querySelector('.typing-indicator');
+
+            if (typing && !existingIndicator) {
+                const indicator = document.createElement('div');
+                indicator.className = 'typing-indicator';
+                indicator.innerHTML = '<span>Peer is typing</span><span class="dots"><span>.</span><span>.</span><span>.</span></span>';
+                messagesContainer.appendChild(indicator);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } else if (!typing && existingIndicator) {
+                existingIndicator.remove();
+            }
+        }
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Escape key to reject connection requests
+            if (e.key === 'Escape') {
+                const requests = connectionRequestsContainer.querySelectorAll('.connection-request');
+                if (requests.length > 0) {
+                    connectionRequestsContainer.innerHTML = '';
+                    showNotification('Connection request dismissed', 'info');
+                }
             }
         });
 
